@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to create a primary PostgreSQL DB instance, a read replica, an EC2 instance, an S3 bucket, and an IAM role for S3 and RDS access.
+
+Parameters:
+  DBInstanceClass:
+    Type: String
+    Default: db.t3.micro
+    Description: The database instance type
+  AllocatedStorage:
+    Type: Number
+    Default: 20
+    Description: The size of the database (GB)
+  MasterUsername:
+    Type: String
+    Default: postgres
+    Description: The master username for the database
+  MasterUserPassword:
+    Type: String
+    Default: admin1234
+    Description: The master password for the database
+  DBName:
+    Type: String
+    Default: survey
+    Description: The name of the database
+  KeyPairName:
+    Type: String
+    Default: north
+    Description: Name of the key pair for the EC2 instance
+  S3BucketName:
+    Type: String
+    Description: The name of the S3
+
+Resources:
+  PrimaryDBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: !Ref DBInstanceClass
+      AllocatedStorage: !Ref AllocatedStorage
+      DBInstanceIdentifier: primary-db-instance
+      Engine: postgres
+      MasterUsername: !Ref MasterUsername
+      MasterUserPassword: !Ref MasterUserPassword
+      DBName: !Ref DBName
+      AvailabilityZone: us-east-1a
+
+  ReadReplicaDBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: !Ref DBInstanceClass
+      AllocatedStorage: !Ref AllocatedStorage
+      DBInstanceIdentifier: read-replica-db-instance
+      Engine: postgres
+      SourceDBInstanceIdentifier: !Ref PrimaryDBInstance
+      AvailabilityZone: us-east-1b
+
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref S3BucketName
+
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.medium
+      ImageId: ami-0e1bed4f06a3b463d        # Ubuntu 22.04 AMI
+      KeyName: north                   # Key Pair name
+      SecurityGroupIds:
+        - sg-0badfec9dace42d0a             # Default Security Group ID
+      SubnetId: subnet-0912ac1061ba250d4    # Subnet ID in us-east-1
+      AvailabilityZone: us-east-1a     # Use availability zone in your region (change if necessary)
+      Tags:
+        - Key: Name
+          Value: Docker-App
+
