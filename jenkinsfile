@@ -1,0 +1,145 @@
+pipeline {
+    agent any
+
+    environment {
+        // Load environment variables
+        AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')  // Jenkins credentials for AWS Access Key
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')  // Jenkins credentials for AWS Secret Key
+        AWS_REGION = 'us-east-1'  // AWS Region
+        ECR_REPOSITORY_URI = '123456789012.dkr.ecr.us-east-1.amazonaws.com/my-repo'  // ECR URI
+        GITHUB_REPO_URL = 'https://github.com/user/repo.git'  // GitHub Repo URL
+        KUBE_CONFIG_PATH = '/home/jenkins/.kube/config'  // Path to kubeconfig for EKS access
+        FRONTEND_DEPLOYMENT_FILE = 'k8s/manifests/frontend-deployment.yaml'  // Path to frontend deployment YAML
+        BACKEND_DEPLOYMENT_FILE = 'k8s/manifests/backend-deployment.yaml'  // Path to backend deployment YAML
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                script {
+                    echo "Checking out code from GitHub..."
+                    git url: "${GITHUB_REPO_URL}", branch: 'main'
+                }
+            }
+        }
+
+        stage('Check EKS Cluster') {
+            steps {
+                script {
+                    echo "Checking if EKS Cluster exists..."
+                    def eksCluster = sh(script: "aws eks describe-cluster --name my-cluster --query 'cluster.name'", returnStdout: true).trim()
+                    if (eksCluster) {
+                        echo "EKS Cluster exists."
+                    } else {
+                        error "EKS Cluster does not exist."
+                    }
+                }
+            }
+        }
+
+        stage('Update kubeconfig') {
+            steps {
+                script {
+                    echo "Updating kubeconfig..."
+                    sh "aws eks update-kubeconfig --region ${AWS_REGION} --name my-cluster"
+                }
+            }
+        }
+
+        stage('Build Frontend Docker Image') {
+            steps {
+                script {
+                    echo "Building Frontend Docker image..."
+                    def buildId = "${BUILD_NUMBER}"
+                    sh """
+                        docker build -t ${ECR_REPOSITORY_URI}/frontend:${buildId} ./frontend
+                    """
+
+                    echo "Building Backend Docker image..."
+                    def buildId = "${BUILD_NUMBER}"
+                    sh """
+                        docker build -t ${ECR_REPOSITORY_URI}/backend:${buildId} ./backend
+                    """
+                }
+            }
+        }
+
+
+        stage('Authenticate Docker to ECR') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'aws-ecr-creds', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                    script {
+                        echo "Authenticating Docker with AWS ECR..."
+                        sh """
+                            aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPOSITORY_URI}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Push Frontend Docker Image to ECR') {
+            steps {
+                script {
+                    echo "Pushing Frontend Docker image to ECR..."
+                    def buildId = "${BUILD_NUMBER}"
+                    sh "docker push ${ECR_REPOSITORY_URI}/frontend:${buildId}"
+
+                    echo "Pushing Backend Docker image to ECR..."
+                    def buildId = "${BUILD_NUMBER}"
+                    sh "docker push ${ECR_REPOSITORY_URI}/backend:${buildId}"
+                }
+            }
+        }
+
+        stage('Update Kubernetes Deployment Manifests') {
+            steps {
+                script {
+                    def buildId = "${BUILD_NUMBER}"
+
+                    // Update the image in frontend deployment YAML
+                    def frontendDockerImage = "${ECR_REPOSITORY_URI}/frontend:${buildId}"
+                    sh """
+                        sed -i 's|image: .*|image: ${frontendDockerImage}|' ${FRONTEND_DEPLOYMENT_FILE}
+                    """
+
+                    // Update the image in backend deployment YAML
+                    def backendDockerImage = "${ECR_REPOSITORY_URI}/backend:${buildId}"
+                    sh """
+                        sed -i 's|image: .*|image: ${backendDockerImage}|' ${BACKEND_DEPLOYMENT_FILE}
+                    """
+                }
+            }
+        }
+
+        stage('Deploy to EKS') {
+            steps {
+                withCredentials([file(credentialsId: 'my-kubeconfig', variable: 'KUBE_CONFIG_FILE')]) {
+                    script {
+                        echo "Deploying to EKS..."
+                        // Apply updated manifests to the EKS cluster
+                        sh """
+                            export KUBECONFIG=$KUBE_CONFIG_FILE && kubectl apply -f ${FRONTEND_DEPLOYMENT_FILE} --kubeconfig=${KUBE_CONFIG_PATH}
+                            export KUBECONFIG=$KUBE_CONFIG_FILE && kubectl apply -f ${BACKEND_DEPLOYMENT_FILE} --kubeconfig=${KUBE_CONFIG_PATH}
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline executed successfully!"
+        }
+        failure {
+            echo "Pipeline failed. Cleaning up..."
+            def buildId = "${BUILD_NUMBER}"
+            sh """
+                docker rmi ${ECR_REPOSITORY_URI}/frontend:${buildId} || true
+                docker rmi ${ECR_REPOSITORY_URI}/backend:${buildId} || true
+                docker ps -a -q --filter 'status=exited' | xargs docker rm || true
+            """
+        }
+    }
+}
