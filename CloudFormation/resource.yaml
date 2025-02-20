@@ -1,74 +1,259 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: CloudFormation template to create a primary PostgreSQL DB instance, a read replica, an EC2 instance, an S3 bucket, and an IAM role for S3 and RDS access.
-
-Parameters:
-  DBInstanceClass:
-    Type: String
-    Default: db.t3.micro
-    Description: The database instance type
-  AllocatedStorage:
-    Type: Number
-    Default: 20
-    Description: The size of the database (GB)
-  MasterUsername:
-    Type: String
-    Default: postgres
-    Description: The master username for the database
-  MasterUserPassword:
-    Type: String
-    Default: admin1234
-    Description: The master password for the database
-  DBName:
-    Type: String
-    Default: survey
-    Description: The name of the database
-  KeyPairName:
-    Type: String
-    Default: north
-    Description: Name of the key pair for the EC2 instance
-  S3BucketName:
-    Type: String
-    Description: The name of the S3
-
+Description: 'vpc, subnet, ig, route table, sg, 2 ec2, postgres sqldb, aws ecr, aws eks'
 Resources:
-  PrimaryDBInstance:
-    Type: AWS::RDS::DBInstance
-    Properties:
-      DBInstanceClass: !Ref DBInstanceClass
-      AllocatedStorage: !Ref AllocatedStorage
-      DBInstanceIdentifier: primary-db-instance
-      Engine: postgres
-      MasterUsername: !Ref MasterUsername
-      MasterUserPassword: !Ref MasterUserPassword
-      DBName: !Ref DBName
-      AvailabilityZone: us-east-1a
 
-  ReadReplicaDBInstance:
-    Type: AWS::RDS::DBInstance
+  # VPC
+  VPC:
+    Type: AWS::EC2::VPC
     Properties:
-      DBInstanceClass: !Ref DBInstanceClass
-      AllocatedStorage: !Ref AllocatedStorage
-      DBInstanceIdentifier: read-replica-db-instance
-      Engine: postgres
-      SourceDBInstanceIdentifier: !Ref PrimaryDBInstance
-      AvailabilityZone: us-east-1b
+      CidrBlock: '10.0.0.0/16'
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      Tags:
+        - Key: Name
+          Value: 'MyVPC'
 
-  S3Bucket:
-    Type: AWS::S3::Bucket
+  # Public Subnet
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
     Properties:
-      BucketName: !Ref S3BucketName
+      VpcId: !Ref VPC
+      CidrBlock: '10.0.1.0/24'
+      AvailabilityZone: 'us-east-1a'  # Change this to your region
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: 'PublicSubnet'
 
-  MyEC2Instance:
+  # Internet Gateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: 'InternetGateway'
+
+  # Attach Internet Gateway to VPC
+  AttachInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Public Route Table
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: 'PublicRouteTable'
+
+  # Route for the public subnet to the Internet
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref InternetGateway
+
+  # Route Table Association for Public Subnet
+  RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  # Security Group
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Allow inbound traffic for EC2, RDS, ECR, EKS'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: '0.0.0.0/0'
+        - IpProtocol: tcp
+          FromPort: '5432'
+          ToPort: '5432'
+          CidrIp: '0.0.0.0/0'
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: '0.0.0.0/0'
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: '0.0.0.0/0'
+      SecurityGroupEgress:
+        - IpProtocol: '-1'
+          CidrIp: '0.0.0.0/0'
+
+  # EC2 Instances (Jenkins Master and Jenkins Agent)
+  JenkinsMasterInstance:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t2.medium
-      ImageId: ami-0e1bed4f06a3b463d        # Ubuntu 22.04 AMI
-      KeyName: north                   # Key Pair name
+      ImageId: 'ami-0e1bed4f06a3b463d'  # Use a valid AMI ID for your region
+      SubnetId: !Ref PublicSubnet
+      KeyName: north
       SecurityGroupIds:
-        - sg-0badfec9dace42d0a             # Default Security Group ID
-      SubnetId: subnet-0912ac1061ba250d4    # Subnet ID in us-east-1
-      AvailabilityZone: us-east-1a     # Use availability zone in your region (change if necessary)
+        - !Ref SecurityGroup
       Tags:
         - Key: Name
-          Value: Docker-App
+          Value: 'JenkinsMaster'
+
+  JenkinsAgentInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.medium
+      ImageId: 'ami-0e1bed4f06a3b463d'  # Use a valid AMI ID for your region
+      SubnetId: !Ref PublicSubnet
+      KeyName: north
+      SecurityGroupIds:
+        - !Ref SecurityGroup
+      Tags:
+        - Key: Name
+          Value: 'JenkinsAgent'
+
+  # RDS PostgreSQL Database
+  RDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: 'MyPGDB'
+      Engine: 'postgres'
+      DBInstanceClass: 'db.t3.micro'
+      AllocatedStorage: '20'
+      MasterUsername: 'shank'
+      MasterUserPassword: 'admin12345'  # Replace with a secure password
+      VPCSecurityGroups:
+        - !Ref SecurityGroup
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      MultiAZ: 'false'
+
+  # RDS Subnet Group (Ensure RDS is deployed in the VPC)
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: 'RDS Subnet Group'
+      SubnetIds:
+        - !Ref PublicSubnet
+
+  # ECR Repository
+  ECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: 'ProjRepo'
+
+  MyEKSClusterRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Service: 'eks.amazonaws.com'
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonEKSClusterPolicy'
+        - 'arn:aws:iam::aws:policy/AmazonVPCFullAccess'
+
+  # EKS Cluster
+  MyEKSCluster:
+    Type: 'AWS::EKS::Cluster'
+    Properties:
+      Name: 'MyEKSCluster'
+      RoleArn: !GetAtt MyEKSClusterRole.Arn
+      ResourcesVpcConfig:
+        SubnetIds: 
+          - !Ref MySubnet1
+          - !Ref MySubnet2
+        SecurityGroupIds:
+          - !Ref MySecurityGroup
+        EndpointPublicAccess: true
+        EndpointPrivateAccess: true
+
+  # Subnet 1 for EKS Worker Nodes
+  MySubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: '10.0.2.0/24'
+      AvailabilityZone: 'us-east-1b'
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: 'Name'
+          Value: 'MySubnet1'
+
+  # Subnet 2 for EKS Worker Nodes
+  MySubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: '10.0.3.0/24'
+      AvailabilityZone: 'us-east-1c'
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: 'Name'
+          Value: 'MySubnet2'
+
+  # EKS Worker Node IAM Role
+  MyEKSNodeRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Service: 'ec2.amazonaws.com'
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy'
+        - 'arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly'
+        - 'arn:aws:iam::aws:policy/AmazonVPCFullAccess'
+
+  # Launch configuration for EKS worker nodes
+  MyEKSNodeGroup:
+    Type: 'AWS::EKS::Nodegroup'
+    Properties:
+      ClusterName: !Ref MyEKSCluster
+      NodeRole: !GetAtt MyEKSNodeRole.Arn
+      Subnets: 
+        - !Ref MySubnet1
+        - !Ref MySubnet2
+      InstanceTypes:
+        - 't3.medium'
+      DesiredSize: 1
+      MinSize: 1
+      MaxSize: 1
+      NodegroupName: 'ProjNode'
+
+Outputs:
+  VPCId:
+    Value: !Ref VPC
+    Description: 'VPC ID'
+  
+  PublicSubnetId:
+    Value: !Ref PublicSubnet
+    Description: 'Public Subnet ID'
+  
+  JenkinsMasterInstanceId:
+    Value: !Ref JenkinsMasterInstance
+    Description: 'Jenkins Master EC2 Instance ID'
+  
+  JenkinsAgentInstanceId:
+    Value: !Ref JenkinsAgentInstance
+    Description: 'Jenkins Agent EC2 Instance ID'
+
+  EKSClusterName:
+    Description: 'EKS Cluster Name'
+    Value: !Ref MyEKSCluster
+
+  EKSClusterArn:
+    Description: 'EKS Cluster ARN'
+    Value: !GetAtt MyEKSCluster.Arn
 
