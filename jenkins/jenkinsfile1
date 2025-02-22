@@ -1,0 +1,46 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_CREDENTIALS_ID = 'aws-creds'
+        CLUSTER_NAME = 'my-cluster'
+        REGION = 'us-east-1'
+    }
+
+    stages {
+        stage('Create EKS Cluster') {
+            steps {
+                withAWS(credentials: "${AWS_CREDENTIALS_ID}", region: "${REGION}") {
+                    script {
+                        sh '''
+                            # Create EKS Cluster
+                            eksctl create cluster \
+                                --name ${CLUSTER_NAME} \
+                                --version 1.30 \
+                                --region ${REGION} \
+                                --nodegroup-name standard-workers \
+                                --node-type t3.medium \
+                                --nodes 1 \
+                                --nodes-min 1 \
+                                --nodes-max 1 \
+                                --managed
+                        '''
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            // Trigger the deployment pipeline
+            build job: 'jenkinsfile-Deploy-OnEKS-Cluster', wait: true, parameters: [
+                string(name: 'CLUSTER_NAME', value: CLUSTER_NAME),
+                string(name: 'REGION', value: REGION)
+            ]
+        }
+        failure {
+            echo 'EKS cluster creation failed.'
+        }
+    }
+}
