@@ -1,44 +1,34 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'vpc, subnet, ig'
+Description: vpc, subnet, ig
 
 Parameters:
-  S3BucketName:
+  BucketName:
     Type: String
-    Description: "The name of the S3 bucket to create"
+    Description: S3 Bucket Name
+    Default: 'twentysixthbucket'
 
 Resources:
   VPC:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: '10.0.0.0/16'
+      CidrBlock: 10.0.0.0/16
       EnableDnsSupport: true
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: 'MyVPC'
+          Value: MyVPC
 
   # Public Subnet
   PublicSubnet:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: '10.0.1.0/24'
-      AvailabilityZone: 'us-east-1a'
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: us-east-1a
       MapPublicIpOnLaunch: 'true'
       Tags:
         - Key: Name
-          Value: 'PublicSubnet'
-
-  # Private Subnet
-  PrivateSubnet:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      CidrBlock: '10.0.2.0/24'
-      AvailabilityZone: 'us-east-1b'
-      Tags:
-        - Key: Name
-          Value: 'PrivateSubnet'
+          Value: PublicSubnet
 
   # Internet Gateway
   InternetGateway:
@@ -46,22 +36,8 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: 'InternetGateway'
+          Value: InternetGateway
 
-  # EIP 
-  EIP:
-    Type: AWS::EC2::EIP
-    Properties:
-      Domain: VPC
-  
-  # NAT Gateway
-  NATGateway:
-    Type: AWS::EC2::NATGateway
-    Properties:
-      SubnetId: !Ref PrivateSubnet
-      EIP: !GetAtt EIP.AllocationId
-
-  # Attach Internet Gateway to VPC
   AttachInternetGateway:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
@@ -75,15 +51,46 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: 'PublicRouteTable'
+          Value: PublicRouteTable
 
   # Route for the public subnet to the Internet
   PublicRoute:
     Type: AWS::EC2::Route
     Properties:
       RouteTableId: !Ref PublicRouteTable
-      DestinationCidrBlock: '0.0.0.0/0'
+      DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
+
+  PublicRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  NATGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NATGatewayEIP.AllocationId
+      SubnetId: !Ref PublicSubnet
+      Tags:
+      - Key: stack
+        Value: production
+        
+  NATGatewayEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  # Private Subnet
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: '10.0.2.0/24'
+      AvailabilityZone: 'us-east-1b'
+      Tags:
+        - Key: Name
+          Value: 'PrivateSubnet'
 
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
@@ -99,22 +106,13 @@ Resources:
       RouteTableId: !Ref PrivateRouteTable
       DestinationCidrBlock: '0.0.0.0/0'
       GatewayId: !Ref NATGateway
-
-  # Route Table Association for Public Subnet
-  PublicRouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PublicSubnet
-      RouteTableId: !Ref PublicRouteTable
-
-  # Route Table Association for Private Subnet
+        
   PrivateRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PrivateSubnet
-      RouteTableId: !Ref PrivateRouteTable    
+      RouteTableId: !Ref PrivateRouteTable
 
-  # Subnet 1 for RDS Subnet Group
   MySubnet1:
     Type: 'AWS::EC2::Subnet'
     Properties:
@@ -126,7 +124,7 @@ Resources:
         - Key: 'Name'
           Value: 'ProjSubnet1'
 
-  # Subnet 2 for RDS Subnet Group
+  # Subnet 2 for EKS Worker Nodes
   MySubnet2:
     Type: 'AWS::EC2::Subnet'
     Properties:
@@ -136,7 +134,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: 'Name'
-          Value: 'ProjSubnet2'    
+          Value: 'ProjSubnet2'
 
   RouteTableAssociationMySubnet1:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -150,7 +148,7 @@ Resources:
       SubnetId: !Ref MySubnet2
       RouteTableId: !Ref PublicRouteTable
 
-  # Security Group
+    # Security Group
   EC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -197,8 +195,7 @@ Resources:
         - IpProtocol: "-1"
           CidrIp: "0.0.0.0/0"
 
-  # IAM Role for EC2 instances to access ECR, EKS, EC2, and VPC
-  EC2InstanceRole:
+  EC2InstanceRole:      # IAM Role for EC2 instances to access ECR, EKS, EC2, and VPC
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -213,8 +210,7 @@ Resources:
         - 'arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy'             # EKS access
         - 'arn:aws:iam::aws:policy/AmazonEC2FullAccess'                   # EC2 full access (adjust as needed)
         - 'arn:aws:iam::aws:policy/AmazonVPCFullAccess'                   # VPC access
-
-  # Refers to IAM role associated with EC2    
+      
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -222,12 +218,12 @@ Resources:
         - !Ref EC2InstanceRole
 
 # EC2 Instances (Jenkins Master and Jenkins Agent)
-  BackendInstance:
+  JenkinsMasterInstance:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t2.medium
       ImageId: 'ami-0e1bed4f06a3b463d'  # Use a valid AMI ID for your region
-      SubnetId: !Ref PrivateSubnet
+      SubnetId: !Ref PublicSubnet
       KeyName: north
       IamInstanceProfile: !Ref EC2InstanceProfile
       SecurityGroupIds:
@@ -271,14 +267,14 @@ Resources:
         apt update  
       Tags:
         - Key: Name
-          Value: 'BackendInstance'
+          Value: 'JenkinsMaster'
 
-  JenkinsInstance:
+  JenkinsAgentInstance:
     Type: AWS::EC2::Instance
     Properties:
-      InstanceType: t2.micro
+      InstanceType: t2.medium
       ImageId: 'ami-0e1bed4f06a3b463d'  # Use a valid AMI ID for your region
-      SubnetId: !Ref PublicSubnet
+      SubnetId: !Ref PrivateSubnet
       KeyName: north
       IamInstanceProfile: !Ref EC2InstanceProfile
       SecurityGroupIds:
@@ -297,6 +293,16 @@ Resources:
         systemctl enable docker
         apt install postgresql postgresql-contrib -y
         systemctl restart docker
+        curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-archive-keyring.gpg
+        echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+        apt update
+        apt install kubectl -y
+        ARCH=amd64
+        PLATFORM=$(uname -s)_$ARCH
+        curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz"
+        curl -sL "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_checksums.txt" | grep $PLATFORM | sha256sum --check
+        tar -xzf eksctl_$PLATFORM.tar.gz -C /tmp && rm eksctl_$PLATFORM.tar.gz
+        sudo mv /tmp/eksctl /usr/local/bin
         sudo apt -y install unzip curl
         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
         unzip awscliv2.zip
@@ -304,13 +310,7 @@ Resources:
         apt update
       Tags:
         - Key: Name
-          Value: 'JenkinsInstance'
-
-  # S3 Bucket
-  S3Bucket:
-    Type: 'AWS::S3::Bucket'
-    Properties:
-      BucketName: !Ref S3BucketName        
+          Value: 'JenkinsAgent'
 
   # RDS Subnet Group (Ensure RDS is deployed in the VPC)
   DBSubnetGroup:
@@ -342,6 +342,11 @@ Resources:
     Properties:
       RepositoryName: 'proj-repo'
 
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+
 
 Outputs:
   VPCId:
@@ -352,18 +357,27 @@ Outputs:
     Value: !Ref PublicSubnet
     Description: 'Public Subnet ID'
   
-  BackendInstanceId:
-    Value: !Ref BackendInstance
+  JenkinsMasterInstanceId:
+    Value: !Ref JenkinsMasterInstance
     Description: 'Jenkins Master EC2 Instance ID'
   
-  JenkinsInstanceId:
-    Value: !Ref JenkinsInstance
+  JenkinsAgentInstanceId:
+    Value: !Ref JenkinsAgentInstance
     Description: 'Jenkins Agent EC2 Instance ID'
 
   ECRRepositoryName:
     Description: 'ECR Repository Name'
     Value: !Ref ECRRepository
 
-  BucketName:
+  NATGatewayID:
+    Description: "The ID of the NAT Gateway"
+    Value: !Ref NATGateway
+
+  DBEndpoint:
+    Description: "The endpoint of the RDS DB Instance"
+    Value: !GetAtt RDSInstance.Endpoint.Address
+
+  S3BucketName:
     Description: "The name of the S3 bucket"
-    Value: !Ref S3Bucket  
+    Value: !Ref S3Bucket
+    
