@@ -9,11 +9,11 @@ app.use(express.json());  // For parsing application/json
 
 // PostgreSQL connection details
 const client = new Client({
-  host: 'your-rds-endpoint',  // Replace with your actual RDS endpoint
+  host: process.env.DB_HOST || 'your-rds-endpoint',  // Replace with your actual RDS endpoint
   port: 5432,
-  user: 'your-username',      // Replace with your actual RDS username
-  password: 'your-password',  // Replace with your actual RDS password
-  database: 'your-database-name', // Replace with your actual database name
+  user: process.env.DB_USER || 'your-username',      // Replace with your actual RDS username
+  password: process.env.DB_PASS || 'your-password',  // Replace with your actual RDS password
+  database: process.env.DB_NAME || 'your-database-name', // Replace with your actual database name
 });
 
 client.connect();
