@@ -19,13 +19,13 @@ spec:
             - containerPort: 5000
           env:
             - name: DB_HOST
-              value: "your-rds-endpoint"
+              value: "myprimarypgdb.cic6t2lbg4qh.us-east-1.rds.amazonaws.com"
             - name: DB_USER
-              value: "your-username"
+              value: "shank"
             - name: DB_PASS
-              value: "your-password"
+              value: "admin12345"
             - name: DB_NAME
-              value: "your-database-name"
+              value: "primarydb"
 ---
 apiVersion: v1
 kind: Service
