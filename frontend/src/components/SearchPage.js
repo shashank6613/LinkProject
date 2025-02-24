@@ -21,7 +21,7 @@ const SearchPage = () => {
 
     try {
       const queryParams = new URLSearchParams(searchParams).toString();
-      const response = await fetch(`http://localhost:5000/api/search?${queryParams}`);
+      const response = await fetch(`http://backend-service/api/search?${queryParams}`);
       const data = await response.json();
       setSearchResults(data);
     } catch (error) {
