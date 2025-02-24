@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         AWS_CREDENTIALS_ID = 'aws-creds'
-        CLUSTER_NAME = 'my-cluster'
+        CLUSTER_NAME = 'proj-clus'
         REGION = 'us-east-1'
     }
 
@@ -18,7 +18,7 @@ pipeline {
                                 --name ${CLUSTER_NAME} \
                                 --version 1.30 \
                                 --region ${REGION} \
-                                --nodegroup-name standard-workers \
+                                --nodegroup-name stand-work \
                                 --node-type t3.medium \
                                 --nodes 1 \
                                 --nodes-min 1 \
