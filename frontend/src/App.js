@@ -12,7 +12,7 @@ const App = () => {
           <Link to="/" style={{ padding: "10px", backgroundColor: "#4CAF50", color: "white", margin: "10px" }}>Go to Form</Link>
           <Link to="/search" style={{ padding: "10px", backgroundColor: "#4CAF50", color: "white", margin: "10px" }}>Go to Search</Link>
         </div>
-        
+
         <Switch>
           <Route exact path="/" component={UserForm} />
           <Route path="/search" component={SearchPage} />
