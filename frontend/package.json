@@ -16,7 +16,11 @@
     "axios": "^0.21.1"
   },
   "devDependencies": {
-    "react-scripts": "^4.0.3"
+    "react-scripts": "^4.0.3",
+    "@babel/core": "^7.16.0",
+    "@babel/preset-env": "^7.16.0",
+    "@babel/preset-react": "^7.16.0",
+    "babel-loader": "8.1.0"
   },
   "engines": {
     "node": "14.x"
