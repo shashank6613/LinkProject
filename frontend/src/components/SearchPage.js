@@ -21,9 +21,15 @@ const SearchPage = () => {
 
     try {
       const queryParams = new URLSearchParams(searchParams).toString();
-      const response = await fetch(`http://backend-service/api/search?${queryParams}`);
+      const response = await fetch(`http://localhost:5000/api/search?${queryParams}`);
       const data = await response.json();
       setSearchResults(data);
+
+      // Reset the form after a successful search
+      setSearchParams({
+        name: "",
+        mobile: "",
+      });
     } catch (error) {
       console.error("Error:", error);
       alert("Error fetching search results.");
@@ -33,7 +39,7 @@ const SearchPage = () => {
   return (
     <div style={{ margin: "20px auto", maxWidth: "600px" }}>
       <h2 style={{ textAlign: "center" }}>Search Users</h2>
-      <form onSubmit={handleSearch}>
+      <form onSubmit={handleSearch} autocomplete="off">
         <div>
           <label>Name: </label>
           <input
@@ -42,6 +48,7 @@ const SearchPage = () => {
             value={searchParams.name}
             onChange={handleChange}
             style={{ width: "100%", padding: "10px", marginBottom: "10px" }}
+            autocomplete="off"
           />
         </div>
         <div>
@@ -52,9 +59,18 @@ const SearchPage = () => {
             value={searchParams.mobile}
             onChange={handleChange}
             style={{ width: "100%", padding: "10px", marginBottom: "10px" }}
+            autocomplete="off"
           />
         </div>
-        <button type="submit" style={{ padding: "10px", backgroundColor: "#4CAF50", color: "white", width: "100%" }}>
+        <button
+          type="submit"
+          style={{
+            padding: "10px",
+            backgroundColor: "#4CAF50",
+            color: "white",
+            width: "100%",
+          }}
+        >
           Search
         </button>
       </form>
