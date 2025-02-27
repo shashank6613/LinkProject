@@ -29,7 +29,7 @@ const UserForm = () => {
     }
 
     try {
-      const response = await fetch("http://backend-service/api/data", {
+      const response = await fetch("http://localhost:5000/api/data", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -40,6 +40,15 @@ const UserForm = () => {
       const data = await response.json();
       if (data.success) {
         alert("User added successfully!");
+
+        // Reset form after successful submission
+        setUserData({
+          name: "",
+          age: "",
+          mobile: "",
+          place: "",
+          amount: "",
+        });
       } else {
         alert("Failed to add user.");
       }
@@ -94,7 +103,7 @@ const UserForm = () => {
   return (
     <div style={formStyle}>
       <h2 style={{ textAlign: "center", color: "#333" }}>Enter User Information</h2>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} autoComplete="off">
         <div>
           <label style={labelStyle}>Name: </label>
           <input
@@ -104,6 +113,7 @@ const UserForm = () => {
             onChange={handleChange}
             style={inputStyle}
             required
+            autoComplete="off"
           />
         </div>
         <div>
@@ -115,6 +125,7 @@ const UserForm = () => {
             onChange={handleChange}
             style={inputStyle}
             required
+            autoComplete="off"
           />
         </div>
         <div>
@@ -126,6 +137,7 @@ const UserForm = () => {
             onChange={handleChange}
             style={inputStyle}
             required
+            autoComplete="off"
           />
         </div>
         <div>
@@ -137,6 +149,7 @@ const UserForm = () => {
             onChange={handleChange}
             style={inputStyle}
             required
+            autoComplete="off"
           />
         </div>
         <div>
@@ -148,6 +161,7 @@ const UserForm = () => {
             onChange={handleChange}
             style={inputStyle}
             required
+            autoComplete="off"
           />
         </div>
         <button
