@@ -1,0 +1,161 @@
+<<Replacement of backend/index.js file for data upload in s3/directory from saved from rds.>>
+<<index.js>>
+
+
+
+const express = require('express');
+const { Client } = require('pg');
+const cors = require('cors');
+const AWS = require('aws-sdk');
+const fs = require('fs');
+const path = require('path');
+const app = express();
+const port = 5000;
+require('dotenv').config();
+
+const dbHost = process.env.DB_HOST;
+const dbUser = process.env.DB_USER;
+const dbPass = process.env.DB_PASSWORD;
+
+console.log(dbHost);
+
+// Enable CORS and parse JSON bodies
+const corsOptions = {
+  origin: 'http://localhost',  // Allow only the frontend's domain
+  methods: 'GET,POST',
+  allowedHeaders: 'Content-Type',
+};
+
+app.use(cors(corsOptions));
+app.use(express.json());
+
+// PostgreSQL connection details
+const client = new Client({
+  host: process.env.DB_HOST || 'postgres',    // PostgreSQL is running locally
+  port: 5432,  // The default PostgreSQL port
+  user: process.env.DB_USER || 'shank',    // Defined in docker-compose.yml (Postgres user)
+  password: process.env.DB_PASSWORD || 'admin12345',    // Defined in docker-compose.yml (Postgres password)
+  database: process.env.DB_NAME || 'primarydb',     // Defined in docker-compose.yml (Postgres database name)
+});
+
+// Connect to the PostgreSQL database
+client.connect()
+  .then(() => {
+    console.log('Connected to PostgreSQL');
+  })
+  .catch(err => {
+    console.error('Error connecting to PostgreSQL', err.stack);
+  });
+
+// Create table if it doesn't exist (including created_at column)
+const createTableQuery = `
+  CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    age INT,
+    mobile VARCHAR(20),
+    place VARCHAR(100),
+    amount DECIMAL(10, 2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+client.query(createTableQuery, (err, res) => {
+  if (err) {
+    console.error('Error creating table:', err.stack);
+  } else {
+    console.log('Table "users" is ready or already exists.');
+  }
+});
+
+// AWS S3 configuration
+const s3 = new AWS.S3();
+const BUCKET_NAME = 'your-s3-bucket-name';  // Replace with your S3 bucket name
+
+// Function to fetch all users and return data
+async function fetchUsers() {
+  try {
+    const result = await client.query('SELECT * FROM users');
+    return result.rows;
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    return [];
+  }
+}
+
+// Function to save users data to a text file and upload it to S3
+async function uploadDataToS3() {
+  const users = await fetchUsers();
+  
+  if (users.length === 0) {
+    console.log('No users found to upload.');
+    return;
+  }
+
+  // Get current date and format folder as dd<month_abbr><yy> (e.g., 02Aug24)
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = now.toLocaleString('default', { month: 'short' }).toLowerCase();  // Aug
+  const year = String(now.getFullYear()).slice(2);  // 24
+  const folderName = `${day}${month}${year}`;
+
+  // File name with timestamp
+  const timestamp = now.toISOString().replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  const fileName = `users_data_${timestamp}.txt`;
+
+  // Prepare the content to be written to the file
+  let fileContent = 'id\tname\tage\tmobile\tplace\tamount\tcreated_at\n';
+  users.forEach(user => {
+    fileContent += `${user.id}\t${user.name}\t${user.age}\t${user.mobile}\t${user.place}\t${user.amount}\t${user.created_at}\n`;
+  });
+
+  // Save the content to a local file
+  const filePath = path.join(__dirname, fileName);
+  fs.writeFileSync(filePath, fileContent);
+
+  // Upload the file to S3
+  const s3Params = {
+    Bucket: BUCKET_NAME,
+    Key: `data/${folderName}/${fileName}`,
+    Body: fs.createReadStream(filePath),
+    ContentType: 'text/plain',
+  };
+
+  s3.upload(s3Params, (err, data) => {
+    if (err) {
+      console.error('Error uploading file to S3:', err);
+    } else {
+      console.log(`File successfully uploaded to S3: ${data.Location}`);
+    }
+
+    // Delete the local file after upload
+    fs.unlinkSync(filePath);
+  });
+}
+
+// Endpoint to create a new user
+app.post('/api/data', async (req, res) => {
+  const { name, age, mobile, place, amount } = req.body;
+
+  try {
+    const result = await client.query(
+      'INSERT INTO users (name, age, mobile, place, amount) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [name, age, mobile, place, amount]
+    );
+    res.json({ success: true, user: result.rows[0] });  // Return inserted user data
+
+    // Upload updated user data to S3 after adding new user
+    await uploadDataToS3();
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to insert user' });
+  }
+});
+
+app.get('/', (req, res) => {
+  res.send('Welcome to the backend API!');
+});
+
+// Start the Express server
+app.listen(port, () => {
+  console.log(`Backend API is listening on port ${port}`);
+});
