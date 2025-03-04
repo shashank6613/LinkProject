@@ -1,16 +1,21 @@
 {
-  "name": "my-app",
+  "name": "backend",
   "version": "1.0.0",
-  "description": "A Node.js app with Express, MySQL, and body-parser",
-  "main": "server.js",
+  "description": "Backend for Full-Stack Application",
+  "main": "index.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node index.js"
   },
   "dependencies": {
-    "body-parser": "^1.19.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
-    "express": "^4.17.3",
+    "express": "^4.17.1",
     "pg": "^8.7.1"
-  }
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": "14.x"
+  },
+  "author": "",
+  "license": "ISC"
 }
