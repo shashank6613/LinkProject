@@ -26,14 +26,16 @@ pipeline {
             agent { label 'master' }
             steps {
                 script {
-                    // Check if the repo has any commits, if not it's the first run
+                    // Check if the repo has any commits (if it's the first run)
                     def isFirstRun = sh(script: "git rev-list --count HEAD || echo 0", returnStdout: true).trim() == '0'
-                    if (isFirstRun || sh(script: "git diff --name-only HEAD~1 | grep ${FRONTEND_DIR}", returnStatus: true) == 0) {
+            
+                    // If it's the first run or there are changes in the frontend, trigger npm install and build
+                    if (isFirstRun || sh(script: "git diff --name-only HEAD~1 ${FRONTEND_DIR} | wc -l", returnStdout: true).trim().toInteger() > 0) {
                         echo "Running npm install and npm run build for frontend..."
                         dir("${FRONTEND_DIR}") {
                             sh 'npm install'
                             sh 'npm run build'
-                       }
+                        }
                     } else {
                         echo "No changes detected in frontend, skipping npm install and npm run build."
                     }
@@ -45,9 +47,11 @@ pipeline {
             agent { label 'master' }
             steps {
                 script {
-                    // Check if the repo has any commits, if not it's the first run
+                    // Check if the repo has any commits (if it's the first run)
                     def isFirstRun = sh(script: "git rev-list --count HEAD || echo 0", returnStdout: true).trim() == '0'
-                    if (isFirstRun || sh(script: "git diff --name-only HEAD~1 | grep ${BACKEND_DIR}", returnStatus: true) == 0) {
+            
+                    // If it's the first run or there are changes in the backend, trigger npm install
+                    if (isFirstRun || sh(script: "git diff --name-only HEAD~1 ${BACKEND_DIR} | wc -l", returnStdout: true).trim().toInteger() > 0) {
                         echo "Running npm install for backend..."
                         dir("${BACKEND_DIR}") {
                             sh 'npm install'
