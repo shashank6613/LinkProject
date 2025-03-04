@@ -29,7 +29,7 @@ const UserForm = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/api/data", {
+      const response = await fetch("http://backend:5000/api/data", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
