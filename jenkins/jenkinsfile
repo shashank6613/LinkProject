@@ -22,6 +22,29 @@ pipeline {
             }
         }
 
+        stage('Install Node.js and npm') {
+            agent { label 'master' }
+            steps {
+                script {
+                    echo 'Installing Node.js and npm on the agent...'
+
+                    // Check if npm is already installed
+                    def npmInstalled = sh(script: 'npm -v', returnStatus: true) == 0
+
+                    if (!npmInstalled) {
+                        echo 'npm is not installed, installing...'
+                        // Install Node.js and npm
+                        sh '''
+                        curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+                        sudo apt-get install -y nodejs
+                        '''
+                    } else {
+                        echo 'npm is already installed.'
+                    }
+                }
+            }
+        }
+
         stage('Install Dependencies for Frontend') {
             agent { label 'master' }
             steps {
