@@ -149,12 +149,14 @@ pipeline {
         }
         failure {
             echo "Pipeline failed. Cleaning up..."
-            def buildId = "${BUILD_NUMBER}"
-            sh """
-                docker rmi ${DOCKER_REPO}/frontend:${buildId} || true
-                docker rmi ${DOCKER_REPO}/backend:${buildId} || true
-                docker ps -a -q --filter 'status=exited' | xargs docker rm || true
-            """
+            script{
+                def buildId = "${BUILD_NUMBER}"
+                sh """
+                    docker rmi ${DOCKER_REPO}/frontend:${buildId} || true
+                    docker rmi ${DOCKER_REPO}/backend:${buildId} || true
+                    docker ps -a -q --filter 'status=exited' | xargs docker rm || true
+                """
+            }
         }
     }
 }
