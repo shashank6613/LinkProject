@@ -1,20 +1,20 @@
-# Use an official Node.js runtime as a parent image
-FROM node:18
+# Step 1: Use the official Node.js image
+FROM node:14
 
 # Set the working directory
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Copy package.json and package-lock.json
-COPY package*.json ./
+# Copy package.json and package-lock.json to the container
+COPY package.json package-lock.json ./
 
-# Install dependencies
+# Install backend dependencies
 RUN npm install
 
-# Copy the rest of the application code
+# Copy the rest of the backend code
 COPY . .
 
-# Expose the port the app runs on
-EXPOSE 8080
+# Expose the backend port (5000)
+EXPOSE 5000
 
-# Define the command to run the app
-CMD [ "node", "server.js" ]
+# Start the backend server
+CMD ["node", "index.js"]
