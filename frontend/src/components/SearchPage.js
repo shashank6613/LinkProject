@@ -37,9 +37,9 @@ const SearchPage = () => {
   };
 
   return (
-    <div style={{ margin: "20px auto", maxWidth: "600px" }}>
+    <div style={{ margin: "20px auto", maxWidth: "900px" }}>
       <h2 style={{ textAlign: "center" }}>Search Users</h2>
-      <form onSubmit={handleSearch} autocomplete="off">
+      <form onSubmit={handleSearch} autoComplete="off" style={{ marginBottom: "20px" }}>
         <div>
           <label>Name: </label>
           <input
@@ -48,7 +48,7 @@ const SearchPage = () => {
             value={searchParams.name}
             onChange={handleChange}
             style={{ width: "100%", padding: "10px", marginBottom: "10px" }}
-            autocomplete="off"
+            autoComplete="off"
           />
         </div>
         <div>
@@ -59,7 +59,7 @@ const SearchPage = () => {
             value={searchParams.mobile}
             onChange={handleChange}
             style={{ width: "100%", padding: "10px", marginBottom: "10px" }}
-            autocomplete="off"
+            autoComplete="off"
           />
         </div>
         <button
@@ -76,17 +76,60 @@ const SearchPage = () => {
       </form>
 
       <div style={{ marginTop: "20px" }}>
-        <h3>Search Results</h3>
-        <ul>
-          {searchResults.map((user) => (
-            <li key={user.id}>
-              {user.name}, {user.mobile}, {user.place}, ${user.amount}
-            </li>
-          ))}
-        </ul>
+        {searchResults.length > 0 ? (
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              marginTop: "20px",
+              border: "1px solid #ddd",
+            }}
+          >
+            <thead>
+              <tr>
+                <th style={tableHeaderStyle}>Name</th>
+                <th style={tableHeaderStyle}>Age</th>
+                <th style={tableHeaderStyle}>Mobile</th>
+                <th style={tableHeaderStyle}>Place</th>
+                <th style={tableHeaderStyle}>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {searchResults.map((user) => (
+                <tr key={user.id} style={tableRowStyle}>
+                  <td style={tableCellStyle}>{user.name}</td>
+                  <td style={tableCellStyle}>{user.age}</td>
+                  <td style={tableCellStyle}>{user.mobile}</td>
+                  <td style={tableCellStyle}>{user.place}</td>
+                  <td style={tableCellStyle}>${user.amount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p>No users found.</p>
+        )}
       </div>
     </div>
   );
+};
+
+// Table styles
+const tableHeaderStyle = {
+  padding: "10px",
+  backgroundColor: "#4CAF50",
+  color: "white",
+  textAlign: "left",
+  fontWeight: "bold",
+};
+
+const tableRowStyle = {
+  borderBottom: "1px solid #ddd",
+};
+
+const tableCellStyle = {
+  padding: "10px",
+  borderBottom: "1px solid #ddd",
 };
 
 export default SearchPage;
