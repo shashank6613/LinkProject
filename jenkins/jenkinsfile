@@ -107,11 +107,11 @@ pipeline {
                 script {
                     echo "Pushing Frontend Docker image to ECR..."
                     def buildId = "${BUILD_NUMBER}"
-                    sh "docker push ${DOCKER_REPO}/frontend:${buildId}"
+                    sh "sudo docker push ${DOCKER_REPO}/frontend:${buildId}"
 
                     echo "Pushing Backend Docker image to ECR..."
                     
-                    sh "docker push ${DOCKER_REPO}/backend:${buildId}"
+                    sh "sudo docker push ${DOCKER_REPO}/backend:${buildId}"
                 }
             }
         }
@@ -125,13 +125,13 @@ pipeline {
                     // Update the image in frontend deployment YAML
                     def frontendDockerImage = "${DOCKER_REPO}/frontend:${buildId}"
                     sh """
-                        sed -i 's|image: .*|image: ${frontendDockerImage}|' ${FRONTEND_DEPLOYMENT_FILE}
+                        sudo sed -i 's|image: .*|image: ${frontendDockerImage}|' ${FRONTEND_DEPLOYMENT_FILE}
                     """
 
                     // Update the image in backend deployment YAML
                     def backendDockerImage = "${DOCKER_REPO}/backend:${buildId}"
                     sh """
-                        sed -i 's|image: .*|image: ${backendDockerImage}|' ${BACKEND_DEPLOYMENT_FILE}
+                        sudo sed -i 's|image: .*|image: ${backendDockerImage}|' ${BACKEND_DEPLOYMENT_FILE}
                     """
                 }
             }
