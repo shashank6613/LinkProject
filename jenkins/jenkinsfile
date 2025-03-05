@@ -8,8 +8,8 @@ pipeline {
         KUBECONFIG = 'local-kubeconfig'
         FRONTEND_DIR = 'frontend'
         BACKEND_DIR = 'backend'
-        FRONTEND_IMAGE = "${DOCKER_REPO}/frontend-img:${BUILD_NUMBER}"
-        BACKEND_IMAGE = "${DOCKER_REPO}/backend-img:${BUILD_NUMBER}"
+        FRONTEND_IMAGE = "${DOCKER_REPO}/frontend:${BUILD_NUMBER}"
+        BACKEND_IMAGE = "${DOCKER_REPO}/backend:${BUILD_NUMBER}"
         FRONTEND_DEPLOYMENT_FILE = 'k8s/manifests/frontend-deployment.yaml'  // Path to frontend deployment YAML
         BACKEND_DEPLOYMENT_FILE = 'k8s/manifests/backend-deployment.yaml'  // Path to backend deployment YAML
     }
