@@ -115,7 +115,7 @@ pipeline {
                     echo "Pushing Backend Docker image to DockerHub..."
             
                     // Use the BACKEND_IMAGE variable for the push command
-                    sh "sudo docker push $${DOCKER_REPO}/backend:${buildId}"
+                    sh "sudo docker push ${DOCKER_REPO}/backend:${buildId}"
                     }
                 }
             }
