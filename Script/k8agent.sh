@@ -30,3 +30,7 @@ sudo apt-get update -y
 sudo apt-get install -y jq
 sudo systemctl enable --now kubelet
 sudo systemctl start kubelet
+sudo kubeadm reset pre-flight checks
+sudo apt-get install docker.io
+sudo systemctl restart docker
+sudo systemctl enable docker
