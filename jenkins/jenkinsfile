@@ -16,14 +16,14 @@ pipeline {
 
     stages {
         stage('Checkout') {
-            agent { label 'master' }
+            agent { label 'k8-agent' }
             steps {
                 checkout scm
             }
         }
 
         stage('Install Node.js and npm') {
-            agent { label 'master' }
+            agent { label 'k8-agent' }
             steps {
                 script {
                     echo 'Installing Node.js and npm on the agent...'
@@ -46,7 +46,7 @@ pipeline {
         }
 
         stage('Install Dependencies for Frontend') {
-            agent { label 'master' }
+            agent { label 'k8-agent' }
             steps {
                 script {
                     echo "Running npm install and npm run build for frontend..."
@@ -71,7 +71,7 @@ pipeline {
             }
 
           stage('Building Docker Image') {
-              agent { label 'master' }
+              agent { label 'k8-agent' }
               steps {
                   script {
                       echo "Building Frontend Docker image..."
@@ -90,7 +90,7 @@ pipeline {
         }
 
         stage('Login to DockerHub') {
-            agent { label 'master' }
+            agent { label 'k8-agent' }
             steps {
                 script {
                     // Login to DockerHub using Jenkins credentials
@@ -102,7 +102,7 @@ pipeline {
         }
 
         stage('Push Frontend Docker Image to ECR') {
-            agent { label 'master' }
+            agent { label 'k8-agent' }
             steps {
                 script {
                     echo "Pushing Frontend Docker image to ECR..."
@@ -117,7 +117,7 @@ pipeline {
         }
 
         stage('Update Kubernetes Deployment Manifests') {
-            agent { label 'master' }
+            agent { label 'k8-agent' }
             steps {
                 script {
                     def buildId = "${BUILD_NUMBER}"
