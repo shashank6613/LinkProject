@@ -1,0 +1,46 @@
+/* Reset some basic styles for cross-browser consistency */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Set the font family globally to 'Roboto' and define a base font size and line height */
+body {
+  font-family: 'Roboto', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  background-color: #f4f4f4; /* Light background color */
+  color: #333; /* Default text color */
+  margin: 0;
+  padding: 0;
+}
+
+/* Styling for the root element where the React app will be mounted */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+/* Links (if any are added in the future) */
+a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Add a simple container class for better spacing around elements */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 20px;
+  margin: 0 auto;
+}
+
