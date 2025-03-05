@@ -7,7 +7,7 @@ WORKDIR /app
 # Install the dependencies
 COPY package.json package-lock.json ./
 
-RUN npm ci --only=production
+RUN npm install
 
 # Copy the rest of the React app
 COPY . .
