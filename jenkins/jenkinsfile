@@ -2,7 +2,7 @@ pipeline {
     agent none  // No global agent, specify agent for each stage
     environment {
         AWS_CREDENTIALS_ID = 'aws-creds'
-        AWS_REGION = 'us-east-1'  // AWS Region
+        AWS_REGION = 'us-west-2'  // AWS Region
         DOCKER_REGISTRY = 'docker.io'  // Replace with your Docker registry
         DOCKER_REPO = 'shashank9928/link-project'
         KUBECONFIG = 'local-kubeconfig'
