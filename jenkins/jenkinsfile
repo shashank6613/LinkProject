@@ -50,42 +50,42 @@ pipeline {
             steps {
                 script {
                     echo "Running npm install and npm run build for frontend..."
-                        dir("${FRONTEND_DIR}") {
-                            sh 'npm install'
-                            sh 'npm run build'
-                        }
+                    dir("${FRONTEND_DIR}") {
+                        sh 'npm install'
+                        sh 'npm run build'
                     }
                 }
             }
+        }
 
         stage('Install Dependencies for Backend') {
             agent { label 'master' }
             steps {
                 script {
                     echo "Running npm install for backend..."
-                        dir("${BACKEND_DIR}") {
-                            sh 'npm install'
-                        }
+                    dir("${BACKEND_DIR}") {
+                        sh 'npm install'
                     }
                 }
             }
+        }
 
-          stage('Building Docker Image') {
-              agent { label 'master' }
-              steps {
-                  script {
-                      echo "Building Frontend Docker image..."
-                      def buildId = "${BUILD_NUMBER}"
-                      sh """
+        stage('Building Docker Image') {
+            agent { label 'master' }
+            steps {
+                script {
+                    echo "Building Frontend Docker image..."
+                    def buildId = "${BUILD_NUMBER}"
+                    sh """
                           sudo docker build -t ${DOCKER_REPO}/frontend:${buildId} ./frontend
-                      """
+                    """
 
-                      echo "Building Backend Docker image..."
+                    echo "Building Backend Docker image..."
 
-                      sh """
+                    sh """
                         sudo docker build -t ${DOCKER_REPO}/backend:${buildId} ./backend
-                      """
-                  }
+                    """
+                }
             }
         }
 
