@@ -14,8 +14,14 @@ apt-get update
 curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
 apt install postgresql postgresql-contrib -y
-sudo apt -y install unzip curl
+sudo apt -y install unzip
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
 sudo ./aws/install
+apt update
+apt-get install docker.io -y
+sudo systemctl resatrt docker
+sudo systemctl enable docker
+sudo usermod -aG $USER
+newgrp docker
 apt update
