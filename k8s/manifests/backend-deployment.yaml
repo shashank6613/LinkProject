@@ -14,18 +14,20 @@ spec:
     spec:
       containers:
         - name: backend
-          image: public.ecr.aws/o1b9f4e8/proj-db/backend:latest
+          image: shashank9928/backend:latest
           ports:
             - containerPort: 5000
           env:
             - name: DB_HOST
-              value: "myprimarypgdb.cic6t2lbg4qh.us-east-1.rds.amazonaws.com"
+              value: "myprimarypgdb.clushmnnhufs.us-west-2.rds.amazonaws.com"
             - name: DB_USER
               value: "shank"
             - name: DB_PASS
               value: "admin12345"
             - name: DB_NAME
               value: "primarydb"
+            - name: READ_REPLICA_HOST
+              value: "myreplicapgdb.clushmnnhufs.us-west-2.rds.amazonaws.com"
 ---
 apiVersion: v1
 kind: Service
