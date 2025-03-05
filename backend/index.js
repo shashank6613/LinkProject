@@ -28,36 +28,44 @@ const readReplicaPool = new Pool({
     database: process.env.DB_NAME || 'primarydb'
 });
 
-primaryPool.connect((err) => {
-    if (err) {
-        console.error('Failed to connect to the primary database:', err);
-        process.exit(1); // Exit the application with failure code
+// Connection check to ensure both databases are up
+const connectToDB = async () => {
+    try {
+        await primaryPool.connect();
+        await readReplicaPool.connect();
+        console.log('Connected to both primary and replica databases');
+    } catch (err) {
+        console.error('Database connection failed:', err);
+        process.exit(1);
     }
-    console.log('Connected to primary database');
+};
+connectToDB();
 
-    // Create table if not exists (on primary database)
+// Create the table in the primary DB if it doesn't exist
+const createTable = async () => {
     const createTableQuery = `
-    CREATE TABLE IF NOT EXISTS "users" (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(100) NOT NULL,
-        age INT NOT NULL,
-        mobile VARCHAR(15) NOT NULL UNIQUE,
-        place VARCHAR(50),
-        amount INT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );`;
+        CREATE TABLE IF NOT EXISTS "users" (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            age INT NOT NULL,
+            mobile VARCHAR(15) NOT NULL UNIQUE,
+            place VARCHAR(50),
+            amount INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );`;
 
-    primaryPool.query(createTableQuery, (err, result) => {
-        if (err) {
-            console.error('Error creating table:', err);
-            process.exit(1); // Exit the application with failure code
-        }
-        console.log('Table "users" created or already exists');
-    });
-});
+    try {
+        await primaryPool.query(createTableQuery);
+        console.log('Table "users" created or already exists in the primary DB');
+    } catch (err) {
+        console.error('Error creating table:', err);
+        process.exit(1);
+    }
+};
+createTable();
 
 // Route to handle form submissions (write to primary DB)
-app.post('/api/data', (req, res) => {
+app.post('/api/data', async (req, res) => {
     const { name, age, mobile, place, amount } = req.body;
 
     // Basic validation
@@ -67,35 +75,38 @@ app.post('/api/data', (req, res) => {
 
     // SQL query to insert data into the user table (on primary DB)
     const insertQuery = `
-    INSERT INTO "users" (name, age, mobile, place, amount)
-    VALUES ($1, $2, $3, $4, $5)`;
+        INSERT INTO "users" (name, age, mobile, place, amount)
+        VALUES ($1, $2, $3, $4, $5) RETURNING id`;
 
-    primaryPool.query(insertQuery, [name, age, mobile, place, amount], (err, result) => {
-        if (err) {
-            console.error('Error inserting data:', err);
-            return res.status(500).json({ message: 'Error inserting data.' });
-        }
-        res.status(200).json({ success: true, message: 'User information submitted successfully!' });
-    });
+    try {
+        const result = await primaryPool.query(insertQuery, [name, age, mobile, place, amount]);
+        res.status(200).json({
+            success: true,
+            message: 'User information submitted successfully!',
+            userId: result.rows[0].id
+        });
+    } catch (err) {
+        console.error('Error inserting data:', err);
+        res.status(500).json({ message: 'Error inserting data.' });
+    }
 });
 
 // Search endpoint (reads from the read replica DB)
-app.get('/api/search', (req, res) => {
+app.get('/api/search', async (req, res) => {
     const { name, mobile } = req.query;
     const sql = 'SELECT * FROM users WHERE name = $1 OR mobile = $2';
 
-    readReplicaPool.query(sql, [name, mobile], (err, results) => {
-        if (err) {
-            console.error('Error executing query on read replica:', err.stack);
-            return res.status(500).json({ message: 'Internal Server Error' });
-        }
+    try {
+        const results = await readReplicaPool.query(sql, [name, mobile]);
         if (results.rows.length > 0) {
-            // Corrected line: Access the rows property
             res.json(results.rows);
         } else {
             res.status(404).json({ message: 'User not found' });
         }
-    });
+    } catch (err) {
+        console.error('Error executing query on read replica:', err.stack);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
 });
 
 // Custom error handler middleware
