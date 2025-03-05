@@ -1,18 +1,19 @@
 # Step 1: Build the React app
-FROM node:14 AS build
+FROM node:14-alpine AS build
 
 # Set the working directory inside the container
 WORKDIR /app
 
 # Install the dependencies
 COPY package.json package-lock.json ./
-RUN npm install
+
+RUN npm ci --only=production
 
 # Copy the rest of the React app
 COPY . .
 
 # Build the React app
-RUN npm run build
+RUN npm run build && rm -rf /app/node_modules
 
 # Step 2: Serve the built app using a static server (Nginx)
 FROM nginx:alpine
