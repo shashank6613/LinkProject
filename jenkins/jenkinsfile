@@ -105,6 +105,7 @@ pipeline {
             agent { label 'master' }
             steps {
                 script {
+                    withCredentials([usernamePassword(credentialsId: 'dock-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     echo "Pushing Frontend Docker image to DockerHub..."
                     def buildId = "${BUILD_NUMBER}"
 
@@ -115,6 +116,7 @@ pipeline {
             
                     // Use the BACKEND_IMAGE variable for the push command
                     sh "sudo docker push ${BACKEND_IMAGE}"
+                    }
                 }
             }
         }
