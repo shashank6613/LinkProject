@@ -101,7 +101,7 @@ pipeline {
             }
         }
 
-        stage('Push Frontend Docker Image to Dockerhub') { 
+        stage('Push Docker Image to Dockerhub') { 
             agent { label 'master' }
             steps {
                 script {
@@ -110,12 +110,12 @@ pipeline {
                     def buildId = "${BUILD_NUMBER}"
 
                     // Use the FRONTEND_IMAGE variable for the push command
-                    sh "sudo docker push ${FRONTEND_IMAGE}"
+                    sh "sudo docker push ${DOCKER_REPO}/frontend:${buildId}"
 
                     echo "Pushing Backend Docker image to DockerHub..."
             
                     // Use the BACKEND_IMAGE variable for the push command
-                    sh "sudo docker push ${BACKEND_IMAGE}"
+                    sh "sudo docker push $${DOCKER_REPO}/backend:${buildId}"
                     }
                 }
             }
