@@ -77,13 +77,13 @@ pipeline {
                       echo "Building Frontend Docker image..."
                       def buildId = "${BUILD_NUMBER}"
                       sh """
-                          docker build -t ${DOCKER_REPO}/frontend:${buildId} ./frontend
+                          sudo docker build -t ${DOCKER_REPO}/frontend:${buildId} ./frontend
                       """
 
                       echo "Building Backend Docker image..."
 
                       sh """
-                        docker build -t ${DOCKER_REPO}/backend:${buildId} ./backend
+                        sudo docker build -t ${DOCKER_REPO}/backend:${buildId} ./backend
                       """
                   }
             }
