@@ -20,7 +20,7 @@ unzip awscliv2.zip
 sudo ./aws/install
 apt update
 apt-get install docker.io -y
-sudo systemctl resatrt docker
+sudo systemctl restart docker
 sudo systemctl enable docker
 sudo usermod -aG $USER
 newgrp docker
