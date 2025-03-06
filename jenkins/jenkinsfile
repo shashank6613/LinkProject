@@ -8,8 +8,6 @@ pipeline {
         KUBECONFIG = 'local-kubeconfig'
         FRONTEND_DIR = 'frontend'
         BACKEND_DIR = 'backend'
-        FRONTEND_IMAGE = "${DOCKER_REPO}/frontend:${BUILD_NUMBER}"
-        BACKEND_IMAGE = "${DOCKER_REPO}/backend:${BUILD_NUMBER}"
         FRONTEND_DEPLOYMENT_FILE = 'k8s/manifests/frontend-deployment.yaml'  // Path to frontend deployment YAML
         BACKEND_DEPLOYMENT_FILE = 'k8s/manifests/backend-deployment.yaml'  // Path to backend deployment YAML
     }
@@ -70,21 +68,16 @@ pipeline {
             }
         }
 
-        stage('Building Docker Image') {
+        stage('Build Docker Images') {
             agent { label 'master' }
             steps {
                 script {
-                    echo "Building Frontend Docker image..."
                     def buildId = "${BUILD_NUMBER}"
-                    sh """
-                          sudo docker build -t ${DOCKER_REPO}/frontend:${buildId} ./frontend
-                    """
+                    echo "Building Frontend Docker image..."
+                    sh "sudo docker build -t ${DOCKER_REPO}/frontend:${buildId} ./${FRONTEND_DIR}"
 
                     echo "Building Backend Docker image..."
-
-                    sh """
-                        sudo docker build -t ${DOCKER_REPO}/backend:${buildId} ./backend
-                    """
+                    sh "sudo docker build -t ${DOCKER_REPO}/backend:${buildId} ./${BACKEND_DIR}"
                 }
             }
         }
@@ -93,30 +86,23 @@ pipeline {
             agent { label 'master' }
             steps {
                 script {
-                    // Login to DockerHub using Jenkins credentials
-                    withCredentials([usernamePassword(credentialsId: 'dock-creds', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
+                    withCredentials([usernamePassword(credentialsId: 'dock-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                     }
                 }
             }
         }
 
-        stage('Push Docker Image to Dockerhub') { 
+        stage('Push Docker Images') {
             agent { label 'master' }
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'dock-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    echo "Pushing Frontend Docker image to DockerHub..."
                     def buildId = "${BUILD_NUMBER}"
-
-                    // Use the FRONTEND_IMAGE variable for the push command
+                    echo "Pushing Frontend Docker image to DockerHub..."
                     sh "sudo docker push ${DOCKER_REPO}/frontend:${buildId}"
 
                     echo "Pushing Backend Docker image to DockerHub..."
-            
-                    // Use the BACKEND_IMAGE variable for the push command
                     sh "sudo docker push ${DOCKER_REPO}/backend:${buildId}"
-                    }
                 }
             }
         }
