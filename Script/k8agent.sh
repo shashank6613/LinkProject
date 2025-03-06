@@ -1,4 +1,11 @@
 #!/bin/bash
+sudo apt update
+sudo apt install openjdk-17-jre -y
+sudo apt update
+sudo apt install curl -y
+sudo apt update
+sudo apt install python3 -y
+sudo apt update
 sudo swapoff -a
 cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
 overlay
@@ -31,6 +38,4 @@ sudo apt-get install -y jq
 sudo systemctl enable --now kubelet
 sudo systemctl start kubelet
 sudo kubeadm reset pre-flight checks
-sudo apt-get install docker.io
-sudo systemctl restart docker
-sudo systemctl enable docker
+echo "After running 'kubeadm join' command install docker or it will CREATE '.SOCK' ISSUE"
