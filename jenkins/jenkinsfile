@@ -4,7 +4,7 @@ pipeline {
         AWS_CREDENTIALS_ID = 'aws-creds'
         AWS_REGION = 'us-west-2'  // AWS Region
         DOCKER_REGISTRY = 'docker.io'  // Replace with your Docker registry
-        DOCKER_REPO = 'shashank9928/link-project'
+        DOCKER_REPO = 'shashank9928/linkproj'
         KUBECONFIG = 'local-kubeconfig'
         FRONTEND_DIR = 'frontend'
         BACKEND_DIR = 'backend'
