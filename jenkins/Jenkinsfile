@@ -143,7 +143,13 @@ pipeline{
             steps {
                 withCredentials([file(credentialsId: 'local-kubeconfig', variable: 'KUBE_CONFIG_FILE')]) {
                     script {
-                        echo "Deploying to EKS..."
+                        sh """
+                           scp ${FRONTEND_DEPLOYMENT_FILE} ubuntu@k8-master:/home/ubuntu/frontend-deployment.yaml"
+                           scp ${BACKEND_DEPLOYMENT_FILE} ubuntu@k8-master:/home/ubuntu/backend-deployment.yaml"
+                        """
+
+                        
+                        echo "Deploying to Kubernetes..."
                         // Apply updated manifests to the EKS cluster
                         sh """
                             export KUBECONFIG=$KUBE_CONFIG_FILE
