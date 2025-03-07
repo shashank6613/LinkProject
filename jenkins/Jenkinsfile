@@ -81,24 +81,36 @@ pipeline{
             }
         }
 
-        stage('Login and Push Docker Image') {
+        stage('Login and Push Docker Image') { 
             agent { label 'master' }
             steps {
                 script {
                     def buildId = "${BUILD_NUMBER}"
-            
-                    // Login and push frontend and backend Docker images with buildId tag
-                    docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CREDENTIAL_ID}") {
-                    // Push frontend image with buildId tag
-                        docker.image("${FRONTEND_IMAGE_NAME}:${buildId}").push("${buildId}")
-                
-                    // Push backend image with buildId tag
-                        docker.image("${BACKEND_IMAGE_NAME}:${buildId}").push("${buildId}")
+
+                    // Ensure the image exists before pushing it
+                    if (docker.image("${FRONTEND_IMAGE_NAME}:${buildId}").exists()) {
+                        echo "Pushing frontend image ${FRONTEND_IMAGE_NAME}:${buildId}..."
+                        // Login and push frontend Docker image
+                        docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CREDENTIAL_ID}") {
+                            docker.image("${FRONTEND_IMAGE_NAME}:${buildId}").push("${buildId}")
+                        }
+                    } else {
+                        error "Frontend image ${FRONTEND_IMAGE_NAME}:${buildId} not found, skipping push."
+                    }
+
+                    // Ensure the image exists before pushing it
+                    if (docker.image("${BACKEND_IMAGE_NAME}:${buildId}").exists()) {
+                        echo "Pushing backend image ${BACKEND_IMAGE_NAME}:${buildId}..."
+                        // Login and push backend Docker image
+                        docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CREDENTIAL_ID}") {
+                            docker.image("${BACKEND_IMAGE_NAME}:${buildId}").push("${buildId}")
+                        }
+                    } else {
+                        error "Backend image ${BACKEND_IMAGE_NAME}:${buildId} not found, skipping push."
                     }
                 }
             }
         }
-
 
         stage('Update Kubernetes Deployment Manifests') {
             agent { label 'master' }
