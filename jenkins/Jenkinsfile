@@ -87,22 +87,24 @@ pipeline{
                 script {
                     def buildId = "${BUILD_NUMBER}"
 
-                    // Ensure the image exists before pushing it
-                    if (docker.image("${FRONTEND_IMAGE_NAME}:${buildId}").exists()) {
+                    // Check if the frontend image exists using 'docker images' command
+                    def frontendImageExists = sh(script: "docker images -q ${FRONTEND_IMAGE_NAME}:${buildId}", returnStatus: true) == 0
+                    if (frontendImageExists) {
                         echo "Pushing frontend image ${FRONTEND_IMAGE_NAME}:${buildId}..."
                         // Login and push frontend Docker image
-                        docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CREDENTIAL_ID}") {
+                        docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CREDENTIALS_ID}") {
                             docker.image("${FRONTEND_IMAGE_NAME}:${buildId}").push("${buildId}")
                         }
                     } else {
                         error "Frontend image ${FRONTEND_IMAGE_NAME}:${buildId} not found, skipping push."
                     }
 
-                    // Ensure the image exists before pushing it
-                    if (docker.image("${BACKEND_IMAGE_NAME}:${buildId}").exists()) {
+                    // Check if the backend image exists using 'docker images' command
+                    def backendImageExists = sh(script: "docker images -q ${BACKEND_IMAGE_NAME}:${buildId}", returnStatus: true) == 0
+                    if (backendImageExists) {
                         echo "Pushing backend image ${BACKEND_IMAGE_NAME}:${buildId}..."
                         // Login and push backend Docker image
-                        docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CREDENTIAL_ID}") {
+                        docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CREDENTIALS_ID}") {
                             docker.image("${BACKEND_IMAGE_NAME}:${buildId}").push("${buildId}")
                         }
                     } else {
@@ -111,6 +113,7 @@ pipeline{
                 }
             }
         }
+
 
         stage('Update Kubernetes Deployment Manifests') {
             agent { label 'master' }
