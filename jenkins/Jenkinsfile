@@ -7,8 +7,8 @@ pipeline{
         KUBECONFIG = 'local-kubeconfig'
         FRONTEND_DEPLOYMENT_FILE = 'k8s/manifests/frontend-deployment.yaml'
         BACKEND_DEPLOYMENT_FILE = 'k8s/manifests/backend-deployment.yaml'
-        FRONTEND_DIR = './frontend'
-        BACKEND_DIR = './backend'
+        FRONTEND_DIR = 'frontend'
+        BACKEND_DIR = 'backend'
     }
 
     stages {
