@@ -6,7 +6,7 @@ pipeline{
         DOCKER_CREDENTIALS_ID = 'dock-creds'
         KUBECONFIG = 'local-kubeconfig'
         FRONTEND_DEPLOYMENT_FILE = 'k8s/manifests/frontend-deployment.yaml'
-        BACKEND_DEPLOYMENT_FILE = '/k8s/manifests/backend-deployment.yaml'
+        BACKEND_DEPLOYMENT_FILE = 'k8s/manifests/backend-deployment.yaml'
         FRONTEND_DIR = 'frontend'
         BACKEND_DIR = 'backend'
     }
