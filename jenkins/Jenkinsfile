@@ -144,8 +144,8 @@ pipeline{
                 withCredentials([file(credentialsId: 'local-kubeconfig', variable: 'KUBE_CONFIG_FILE')]) {
                     script {
                         sh """
-                           scp ${FRONTEND_DEPLOYMENT_FILE} ubuntu@k8-master:/home/ubuntu/frontend-deployment.yaml"
-                           scp ${BACKEND_DEPLOYMENT_FILE} ubuntu@k8-master:/home/ubuntu/backend-deployment.yaml"
+                           scp -o StrictHostKeyChecking=no ${FRONTEND_DEPLOYMENT_FILE} ubuntu@k8-master:/home/ubuntu/frontend-deployment.yaml"
+                           scp -o StrictHostKeyChecking=no ${BACKEND_DEPLOYMENT_FILE} ubuntu@k8-master:/home/ubuntu/backend-deployment.yaml"
                         """
 
                         
