@@ -74,9 +74,9 @@ pipeline{
                     // Build Docker image 
                     def buildId = "${BUILD_NUMBER}"
 
-                    docker.build("${FRONTEND_IMAGE_NAME}:${buildId}") ./${FRONTEND_DIR}
+                    docker.build("${FRONTEND_IMAGE_NAME}:${buildId}", "-f ${WORKSPACE}/${FRONTEND_DIR}/Dockerfile ./${FRONTEND_DIR}")
 
-                    docker.build("${BACKEND_IMAGE_NAME}:${buildId}") ./${BACKEND_DIR}
+                    docker.build("${BACKEND_IMAGE_NAME}:${buildId}", "-f ${WORKSPACE}/${BACKEND_DIR}/Dockerfile ./${BACKEND_DIR}")
                 }
             }
         }
