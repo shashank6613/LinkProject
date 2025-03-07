@@ -14,7 +14,8 @@ spec:
     spec:
       containers:
         - name: backend
-          image: shashank9928/backend:latest
+          image: shashank9928/linkproj-be:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 5000
           env:
