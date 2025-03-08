@@ -137,20 +137,7 @@ pipeline{
                 }
             }
         }
-
-        stage('Copy to Kubernetes Agent') {
-            agent { label 'master' }
-            steps {
-                script {
-                    // Use the Copy To Slave plugin to copy files to the remote agent
-                    copyToSlave(src: "${WORKSPACE}/k8s/manifests/frontend-deployment.yaml", dest: "/home/ubuntu/workspace/", node: 'k8-master')
-                    copyToSlave(src: "${WORKSPACE}/k8s/manifests/backend-deployment.yaml", dest: "/home/ubuntu/workspace", node: 'k8-master')
-                }
-            }
-        }
-
-
-        
+  
         stage('Deploy to Kubernetes-Cluster') {
             agent { label 'k8-master' }
             steps {
