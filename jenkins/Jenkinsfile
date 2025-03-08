@@ -138,11 +138,20 @@ pipeline{
             }
         }
 
+        stage('Stash Updated Deployment Files') {
+            steps {
+                // Stash the updated deployment files so that they can be used in the next stage
+                stash includes: "${FRONTEND_DEPLOYMENT_FILE}, ${BACKEND_DEPLOYMENT_FILE}", name: 'deploy-files'
+            }
+        }
+
         stage('Deploy to Kubernetes-Cluster') {
             agent { label 'k8-master' }
             steps {
                 withCredentials([file(credentialsId: 'local-kubeconfig', variable: 'KUBE_CONFIG_FILE')]) {
                     script {
+                        // Unstash the updated files in the 'k8-master' agent's workspace
+                        unstash 'deploy-files'
                         
                         echo "Deploying to Kubernetes..."
                         // Apply updated manifests to the EKS cluster
