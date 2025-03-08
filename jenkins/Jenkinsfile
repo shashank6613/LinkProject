@@ -152,8 +152,9 @@ pipeline{
                 withCredentials([file(credentialsId: 'local-kubeconfig', variable: 'KUBE_CONFIG_FILE')]) {
                     script {
                         // Unstash the updated files in the 'k8-master' agent's workspace
+                        echo "Unstashing files..."
                         unstash 'deploy-files'
-                        
+                        echo "Unstash complete."
                         echo "Deploying to Kubernetes..."
                         // Apply updated manifests to the EKS cluster
                         sh """
