@@ -29,7 +29,7 @@ const UserForm = () => {
     }
 
     try {
-      const response = await fetch("http://backend-service:5000/api/data", {
+      const response = await fetch("http://35.91.97.181:30088/api/data", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
