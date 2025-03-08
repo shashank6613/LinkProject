@@ -21,7 +21,7 @@ const SearchPage = () => {
 
     try {
       const queryParams = new URLSearchParams(searchParams).toString();
-      const response = await fetch(`http://backend-service:5000/api/search?${queryParams}`);
+      const response = await fetch(`http://35.91.97.181:30088/api/search?${queryParams}`);
       const data = await response.json();
       setSearchResults(data);
 
