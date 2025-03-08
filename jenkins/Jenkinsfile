@@ -124,14 +124,14 @@ pipeline{
                     // Update the image in frontend deployment YAML
                     def frontendDockerImage = "${FRONTEND_IMAGE_NAME}:${buildId}"
                     sh """
-                        sudo sed -i 's|image: .*|image: ${frontendDockerImage}|' ${FRONTEND_DEPLOYMENT_FILE}
+                        sed -i 's|image: .*|image: ${frontendDockerImage}|' ${FRONTEND_DEPLOYMENT_FILE}
                         cat k8s/manifests/frontend-deployment.yaml
                     """
 
                     // Update the image in backend deployment YAML
                     def backendDockerImage = "${BACKEND_IMAGE_NAME}:${buildId}"
                     sh """
-                        sudo sed -i 's|image: .*|image: ${backendDockerImage}|' ${BACKEND_DEPLOYMENT_FILE}
+                        sed -i 's|image: .*|image: ${backendDockerImage}|' ${BACKEND_DEPLOYMENT_FILE}
                         cat k8s/manifests/backend-deployment.yaml
                     """
                 }
