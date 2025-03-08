@@ -147,7 +147,7 @@ pipeline{
         }
 
         stage('Deploy to Kubernetes-Cluster') {
-            agent { label 'master' }
+            agent { label 'k8-master' }
             steps {
                 withCredentials([file(credentialsId: 'local-kubeconfig', variable: 'KUBE_CONFIG_FILE')]) {
                     script {
