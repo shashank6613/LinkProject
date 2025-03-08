@@ -153,13 +153,18 @@ pipeline{
                     script {
                         // Unstash the updated files in the 'k8-master' agent's workspace
                         echo "Unstashing files..."
+                        
                         unstash 'deploy-files'
                         echo "Unstash complete."
+                        
                         echo "Deploying Below Files to Kubernetes-Cluster..."
+                        
                         echo "UPDATED FRONTEND DEPLOYMENT"
                         sh """ cat k8s/manifests/frontend-deployment.yaml """
+                        
                         echo "UPDATED BACKEND DEPLOYMENT"
                         sh """ cat k8s/manifests/frontend-deployment.yaml """
+                        
                         sh """
                             export KUBECONFIG=$KUBE_CONFIG_FILE
                             kubectl apply -f ${FRONTEND_DEPLOYMENT_FILE}
