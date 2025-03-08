@@ -147,8 +147,8 @@ pipeline{
                         
                         sh """
                             export KUBECONFIG=$KUBE_CONFIG_FILE
-                            kubectl apply -f ${FRONTEND_DEPLOYMENT_FILE}
-                            kubectl apply -f ${BACKEND_DEPLOYMENT_FILE}
+                            kubectl apply -f ${WORKSPACE}/${FRONTEND_DEPLOYMENT_FILE}
+                            kubectl apply -f ${WORKSPACE}/${BACKEND_DEPLOYMENT_FILE}
                         """
                     }
                 }
