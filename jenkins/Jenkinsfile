@@ -124,25 +124,17 @@ pipeline{
                     // Update the image in frontend deployment YAML
                     def frontendDockerImage = "${FRONTEND_IMAGE_NAME}:${buildId}"
                     sh """
-                        sed -i 's|image: .*|image: ${frontendDockerImage}|' ${WORKSPACE}/${FRONTEND_DEPLOYMENT_FILE}
+                        sed -i "s|image: .*|image: ${frontendDockerImage}|" /var/lib/jenkins/workspace/refresh/k8s/manifests/frontend-deployment.yaml
                         cat k8s/manifests/frontend-deployment.yaml
                     """
 
                     // Update the image in backend deployment YAML
                     def backendDockerImage = "${BACKEND_IMAGE_NAME}:${buildId}"
                     sh """
-                        sed -i 's|image: .*|image: ${backendDockerImage}|' ${WORKSPACE}/${BACKEND_DEPLOYMENT_FILE}
+                        sed -i "s|image: .*|image: ${backendDockerImage}|" /var/lib/jenkins/workspace/refresh/k8s/manifests/backend-deployment.yaml
                         cat k8s/manifests/backend-deployment.yaml
                     """
                 }
-            }
-        }
-
-        stage('Stash Updated Deployment Files') {
-            agent { label 'master' }
-            steps {
-                // Stash the updated deployment files so that they can be used in the next stage
-                stash includes: "${FRONTEND_DEPLOYMENT_FILE},${BACKEND_DEPLOYMENT_FILE}", name: 'deploy-files'
             }
         }
 
@@ -150,20 +142,8 @@ pipeline{
             agent { label 'k8-master' }
             steps {
                 withCredentials([file(credentialsId: 'local-kubeconfig', variable: 'KUBE_CONFIG_FILE')]) {
-                    script {
-                        // Unstash the updated files in the 'k8-master' agent's workspace
-                        echo "Unstashing files..."
-                        
-                        unstash 'deploy-files'
-                        echo "Unstash complete."
-                        
+                    script { 
                         echo "Deploying Below Files to Kubernetes-Cluster..."
-                        
-                        echo "UPDATED FRONTEND DEPLOYMENT"
-                        sh """ cat k8s/manifests/frontend-deployment.yaml """
-                        
-                        echo "UPDATED BACKEND DEPLOYMENT"
-                        sh """ cat k8s/manifests/frontend-deployment.yaml """
                         
                         sh """
                             export KUBECONFIG=$KUBE_CONFIG_FILE
