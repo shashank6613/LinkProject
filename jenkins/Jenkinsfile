@@ -157,9 +157,9 @@ pipeline{
                         echo "Unstash complete."
                         echo "Deploying Below Files to Kubernetes-Cluster..."
                         echo "UPDATED FRONTEND DEPLOYMENT"
-                        cat k8s/manifests/frontend-deployment.yaml
+                        sh """ cat k8s/manifests/frontend-deployment.yaml """
                         echo "UPDATED BACKEND DEPLOYMENT"
-                        cat k8s/manifests/frontend-deployment.yaml
+                        sh """ cat k8s/manifests/frontend-deployment.yaml """
                         sh """
                             export KUBECONFIG=$KUBE_CONFIG_FILE
                             kubectl apply -f ${FRONTEND_DEPLOYMENT_FILE}
