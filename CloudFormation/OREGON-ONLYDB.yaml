@@ -48,12 +48,12 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t2.medium
-      ImageId: 'ami-00c257e12d6828491'  # Ubuntu 22.04 AMI  #us-west-2
-      SubnetId: subnet-0277c5e7de9bdb839  #us-west-2a
+      ImageId: 'ami-************'  # Ubuntu 22.04 AMI  #us-west-2
+      SubnetId: subnet-************  #us-west-2a
       KeyName: linked     # For Oregon us-east-2
       IamInstanceProfile: !Ref EC2InstanceProfile
       SecurityGroupIds:
-        - sg-0a5a89c14bfd4e505    #us-west-2
+        - sg-************    #us-west-2
       Tags:
         - Key: Name
           Value: 'Jenkins-Master'
@@ -73,12 +73,12 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t2.medium
-      ImageId: 'ami-00c257e12d6828491'  # Ubuntu 22.04 AMI  #us-west-2
-      SubnetId: subnet-00c57145bfe2258a0  #us-west-2b
+      ImageId: 'ami-************'  # Ubuntu 22.04 AMI  #us-west-2
+      SubnetId: subnet-************  #us-west-2b
       KeyName: linked     # For Oregon us-east-2
       IamInstanceProfile: !Ref EC2InstanceProfile
       SecurityGroupIds:
-        - sg-0a5a89c14bfd4e505    #us-west-2
+        - sg-************    #us-west-2
       Tags:
         - Key: Name
           Value: 'Kube-Master'
@@ -98,12 +98,12 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t2.medium
-      ImageId: 'ami-00c257e12d6828491'  # Ubuntu 22.04 AMI  #us-west-2
-      SubnetId: subnet-09e11b6ccb343dee5  #us-west-2c
+      ImageId: 'ami-************'  # Ubuntu 22.04 AMI  #us-west-2
+      SubnetId: subnet-************  #us-west-2c
       KeyName: linked    # For Oregon us-west-2
       IamInstanceProfile: !Ref EC2InstanceProfile
       SecurityGroupIds:
-        - sg-0a5a89c14bfd4e505    #us-west-2
+        - sg-************    #us-west-2
       Tags:
         - Key: Name
           Value: 'Kube-Agent'
@@ -124,9 +124,9 @@ Resources:
     Properties:
       DBSubnetGroupDescription: 'Default DB Subnet Group'
       SubnetIds:
-        - subnet-0277c5e7de9bdb839   #us-west-2a
-        - subnet-00c57145bfe2258a0   #us-west-2b
-        - subnet-09e11b6ccb343dee5   #us-west-2c
+        - subnet-************   #us-west-2a
+        - subnet-************   #us-west-2b
+        - subnet-************   #us-west-2c
 
   # Primary RDS PostgreSQL Database
   PrimaryRDSInstance:
@@ -134,14 +134,14 @@ Resources:
     Properties:
       DBInstanceIdentifier: 'MyPrimaryPGDB'
       Engine: 'postgres'
-      DBInstanceClass: 'db.t3.micro'
+      DBInstanceClass: '************'
       AllocatedStorage: '20'
       MasterUsername: 'shank'
-      MasterUserPassword: 'admin12345'
+      MasterUserPassword: '************'
       PubliclyAccessible: true
-      DBParameterGroupName: 'newpara'
+      DBParameterGroupName: '************'
       VPCSecurityGroups:
-        - sg-0a5a89c14bfd4e505    #us-west-2
+        - sg-************    #us-west-2
       DBSubnetGroupName: !Ref DBSubnetGroup
       MultiAZ: 'false'
       DBName: 'primarydb'
@@ -157,7 +157,7 @@ Resources:
       PubliclyAccessible: true
       DBParameterGroupName: 'newpara'
       VPCSecurityGroups:
-        - sg-0a5a89c14bfd4e505    #us-west-2
+        - sg-************    #us-west-2
       MultiAZ: 'false'
       SourceDBInstanceIdentifier: !Ref PrimaryRDSInstance
 
