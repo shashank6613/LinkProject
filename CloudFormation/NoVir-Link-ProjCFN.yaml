@@ -1,0 +1,149 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CFN template for primary and replica PostgreSQL DB using default SG and Subnet group & 3 EC2s'
+
+Parameters:
+  BucketName:
+    Type: String
+    Description: S3 Bucket Name
+    Default: 'twentysixthbucket'
+
+  PrimaryRDSInstanceIdentifier:
+    Type: String
+    Default: 'MyPrimaryPGDB'
+    Description: Identifier for the Primary RDS PostgreSQL instance
+
+  ReplicaRDSInstanceIdentifier:
+    Type: String
+    Default: 'MyReplicaPGDB'
+    Description: Identifier for the Replica RDS PostgreSQL instance  
+
+  PrimaryRDSMasterUsername:
+    Type: String
+    Default: 'shank'
+    Description: Master username for the Primary RDS PostgreSQL instance
+
+  PrimaryRDSMasterPassword:
+    Type: String
+    NoEcho: true
+    Default: 'admin12345'
+    Description: Master password for the Primary RDS PostgreSQL instance
+
+  DBName:
+    Type: String
+    Default: 'primarydb'
+    Description: The name of the primary database for the RDS instance   
+    
+  Resources:
+  # EC2 Instance (Jenkins-Master)
+  JenkinsMasterInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: 'ami-0e1bed4f06a3b463d'  # Ubuntu 22.04 AMI
+      SubnetId: subnet-0912ac1061ba250d4  #us-east-1a
+      KeyName: north
+      SecurityGroupIds:
+        - sg-0badfec9dace42d0a
+      Tags:
+        - Key: Name
+          Value: 'Jenkins-Master'
+
+
+  # EC2 Instances (K8-Master and K8-Agent)
+  KubeMasterInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.medium
+      ImageId: 'ami-0e1bed4f06a3b463d'  # Ubuntu 22.04 AMI
+      SubnetId: subnet-0f3892bce3dbe3c03  #us-east-1b
+      KeyName: north
+      SecurityGroupIds:
+        - sg-0badfec9dace42d0a
+      Tags:
+        - Key: Name
+          Value: 'Kube-Master'
+
+  KubeAgentInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.medium
+      ImageId: 'ami-0e1bed4f06a3b463d'  # Ubuntu 22.04 AMI
+      SubnetId: subnet-0642e758dffd09ae0  #us-east-1c
+      KeyName: north
+      SecurityGroupIds:
+        - sg-0badfec9dace42d0a
+      Tags:
+        - Key: Name
+          Value: 'Kube-Agent'
+
+  # DB Subnet Group for RDS Instances
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: 'Default DB Subnet Group'
+      SubnetIds:
+        - subnet-0912ac1061ba250d4   #us-east-1a
+        - subnet-0f3892bce3dbe3c03   #us-east-1b
+        - subnet-0642e758dffd09ae0   #us-east-1c
+
+  # Primary RDS PostgreSQL Database
+  PrimaryRDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Ref PrimaryRDSInstanceIdentifier
+      Engine: 'postgres'
+      DBInstanceClass: 'db.t3.micro'
+      AllocatedStorage: '20'
+      MasterUsername: !Ref PrimaryRDSMasterUsername
+      MasterUserPassword: !Ref PrimaryRDSMasterPassword
+      PubliclyAccessible: true
+      VPCSecurityGroups:
+        - sg-0badfec9dace42d0a
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      MultiAZ: 'false'
+      DBName: !Ref DBName
+
+  # Replica RDS PostgreSQL Database
+  ReplicaRDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Ref ReplicaRDSInstanceIdentifier
+      Engine: 'postgres'
+      DBInstanceClass: 'db.t3.micro'
+      AllocatedStorage: '20'
+      PubliclyAccessible: true
+      VPCSecurityGroups:
+        - sg-0badfec9dace42d0a
+      MultiAZ: 'false'
+      SourceDBInstanceIdentifier: !Ref PrimaryRDSInstance
+
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+
+
+Outputs:
+  PrimaryDBEndpoint:
+    Description: "The endpoint of the Primary RDS DB Instance"
+    Value: !GetAtt PrimaryRDSInstance.Endpoint.Address
+  
+  ReplicaDBEndpoint:
+    Description: "The endpoint of the Replica RDS DB Instance"
+    Value: !GetAtt ReplicaRDSInstance.Endpoint.Address
+
+  Jenkins-MasterInstanceId:
+    Value: !Ref JenkinsMasterInstance
+    Description: 'Jenkins Master EC2 Instance ID'
+
+  Kube-MasterInstanceId:
+    Value: !Ref KubeMasterInstance
+    Description: 'Jenkins Master EC2 Instance ID'
+  
+  Kube-AgentInstanceId:
+    Value: !Ref KubeAgentInstance
+    Description: 'Jenkins Agent EC2 Instance ID'
+
+  S3BucketName:
+    Description: "The name of the S3 bucket"
+    Value: !Ref S3Bucket
