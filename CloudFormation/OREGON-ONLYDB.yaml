@@ -1,0 +1,184 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'FOR us-west-2, CFN template for primary and replica PostgreSQL DB using default SG and Subnet group & 3 EC2s'
+
+Resources:
+  EC2Role:
+    Type: "AWS::IAM::Role"
+    DependsOn: 
+      - PrimaryRDSInstance
+      - ReplicaRDSInstance
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "ec2.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "EC2S3ReAcc"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - 'rds:DescribeDBInstances'
+                  - 'rds:Connect'
+                  - 'rds:ExecuteStatement'
+                Resource:
+                  - !GetAtt PrimaryRDSInstance.Arn
+                  - !GetAtt ReplicaRDSInstance.Arn
+
+              - Effect: "Allow"
+                Action:
+                  - 's3:ListBucket'
+                  - 's3:GetObject'
+                  - 's3:PutObject'
+                  - 's3:DeleteObject'
+                Resource: "arn:aws:s3:::twentyseventhbucket/*"
+
+  EC2InstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Roles:
+        - Ref: "EC2Role"
+
+# EC2 Instance (Jenkins-Master)
+  JenkinsMasterInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.medium
+      ImageId: 'ami-00c257e12d6828491'  # Ubuntu 22.04 AMI  #us-west-2
+      SubnetId: subnet-0277c5e7de9bdb839  #us-west-2a
+      KeyName: linked     # For Oregon us-east-2
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      SecurityGroupIds:
+        - sg-0a5a89c14bfd4e505    #us-west-2
+      Tags:
+        - Key: Name
+          Value: 'Jenkins-Master'
+      UserData: !Base64 |
+        #!/bin/bash
+        sudo apt -y install unzip
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip awscliv2.zip
+        sudo ./aws/install
+        sudo apt update
+        aws s3 cp s3://twentyseventhbucket/jenkins-ec2.sh /home/ubuntu/jenkins-ec2.sh
+        sudo chmod +x /home/ubuntu/jenkins-ec2.sh
+        /home/ubuntu/jenkins-ec2.sh          
+
+# EC2 Instance (K8-Master)
+  KubeMasterInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.medium
+      ImageId: 'ami-00c257e12d6828491'  # Ubuntu 22.04 AMI  #us-west-2
+      SubnetId: subnet-00c57145bfe2258a0  #us-west-2b
+      KeyName: linked     # For Oregon us-east-2
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      SecurityGroupIds:
+        - sg-0a5a89c14bfd4e505    #us-west-2
+      Tags:
+        - Key: Name
+          Value: 'Kube-Master'
+      UserData: !Base64 |
+        #!/bin/bash
+        sudo apt -y install unzip
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip awscliv2.zip
+        sudo ./aws/install
+        sudo apt update
+        aws s3 cp s3://twentyseventhbucket/k8-master.sh /home/ubuntu/k8-master.sh
+        sudo chmod +x /home/ubuntu/k8-master.sh
+        /home/ubuntu/k8-master.sh    
+
+  # EC2 Instance (K8-Agent)
+  KubeAgentInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.medium
+      ImageId: 'ami-00c257e12d6828491'  # Ubuntu 22.04 AMI  #us-west-2
+      SubnetId: subnet-09e11b6ccb343dee5  #us-west-2c
+      KeyName: linked    # For Oregon us-west-2
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      SecurityGroupIds:
+        - sg-0a5a89c14bfd4e505    #us-west-2
+      Tags:
+        - Key: Name
+          Value: 'Kube-Agent'
+      UserData: !Base64 |
+        #!/bin/bash
+        sudo apt -y install unzip
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip awscliv2.zip
+        sudo ./aws/install
+        sudo apt update
+        aws s3 cp s3://twentyseventhbucket/k8-Agent.sh /home/ubuntu/k8-Agent.sh
+        sudo chmod +x /home/ubuntu/k8-Agent.sh
+        /home/ubuntu/k8-Agent.sh    
+
+  # DB Subnet Group for RDS Instances
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: 'Default DB Subnet Group'
+      SubnetIds:
+        - subnet-0277c5e7de9bdb839   #us-west-2a
+        - subnet-00c57145bfe2258a0   #us-west-2b
+        - subnet-09e11b6ccb343dee5   #us-west-2c
+
+  # Primary RDS PostgreSQL Database
+  PrimaryRDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: 'MyPrimaryPGDB'
+      Engine: 'postgres'
+      DBInstanceClass: 'db.t3.micro'
+      AllocatedStorage: '20'
+      MasterUsername: 'shank'
+      MasterUserPassword: 'admin12345'
+      PubliclyAccessible: true
+      DBParameterGroupName: 'newpara'
+      VPCSecurityGroups:
+        - sg-0a5a89c14bfd4e505    #us-west-2
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      MultiAZ: 'false'
+      DBName: 'primarydb'
+
+  # Replica RDS PostgreSQL Database
+  ReplicaRDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: 'MyReplicaPGDB'
+      Engine: 'postgres'
+      DBInstanceClass: 'db.t3.micro'
+      AllocatedStorage: '20'
+      PubliclyAccessible: true
+      DBParameterGroupName: 'newpara'
+      VPCSecurityGroups:
+        - sg-0a5a89c14bfd4e505    #us-west-2
+      MultiAZ: 'false'
+      SourceDBInstanceIdentifier: !Ref PrimaryRDSInstance
+
+
+Outputs:
+  PrimaryDBEndpoint:
+    Description: "The endpoint of the Primary RDS DB Instance"
+    Value: !GetAtt PrimaryRDSInstance.Endpoint.Address
+  
+  ReplicaDBEndpoint:
+    Description: "The endpoint of the Replica RDS DB Instance"
+    Value: !GetAtt ReplicaRDSInstance.Endpoint.Address
+
+  JenkinsMasterInstanceId:
+    Description: "Jenkins Master EC2 Instance ID"
+    Value: !Ref JenkinsMasterInstance
+
+  KubeMasterInstanceId:
+    Value: !Ref KubeMasterInstance
+    Description: 'KubeMaster EC2 Instance ID'
+  
+  KubeAgentInstanceId:
+    Value: !Ref KubeAgentInstance
+    Description: 'KubeAgent EC2 Instance ID'
