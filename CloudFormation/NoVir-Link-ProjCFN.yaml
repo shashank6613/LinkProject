@@ -5,7 +5,7 @@ Parameters:
   BucketName:
     Type: String
     Description: S3 Bucket Name
-    Default: 'twentysixthbucket'
+    Default: '***********'
 
   PrimaryRDSInstanceIdentifier:
     Type: String
@@ -19,13 +19,13 @@ Parameters:
 
   PrimaryRDSMasterUsername:
     Type: String
-    Default: 'shank'
+    Default: '*******'
     Description: Master username for the Primary RDS PostgreSQL instance
 
   PrimaryRDSMasterPassword:
     Type: String
     NoEcho: true
-    Default: 'admin12345'
+    Default: '********'
     Description: Master password for the Primary RDS PostgreSQL instance
 
   DBName:
@@ -39,11 +39,11 @@ Parameters:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t2.micro
-      ImageId: 'ami-0e1bed4f06a3b463d'  # Ubuntu 22.04 AMI
-      SubnetId: subnet-0912ac1061ba250d4  #us-east-1a
+      ImageId: '****************'  # Ubuntu 22.04 AMI
+      SubnetId: subnet-************  #us-east-1a
       KeyName: north
       SecurityGroupIds:
-        - sg-0badfec9dace42d0a
+        - sg-*********
       Tags:
         - Key: Name
           Value: 'Jenkins-Master'
@@ -54,11 +54,11 @@ Parameters:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t2.medium
-      ImageId: 'ami-0e1bed4f06a3b463d'  # Ubuntu 22.04 AMI
-      SubnetId: subnet-0f3892bce3dbe3c03  #us-east-1b
+      ImageId: 'ami-************'  # Ubuntu 22.04 AMI
+      SubnetId: subnet-************  #us-east-1b
       KeyName: north
       SecurityGroupIds:
-        - sg-0badfec9dace42d0a
+        - sg-************
       Tags:
         - Key: Name
           Value: 'Kube-Master'
@@ -67,11 +67,11 @@ Parameters:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t2.medium
-      ImageId: 'ami-0e1bed4f06a3b463d'  # Ubuntu 22.04 AMI
-      SubnetId: subnet-0642e758dffd09ae0  #us-east-1c
+      ImageId: 'ami-************'  # Ubuntu 22.04 AMI
+      SubnetId: subnet-************  #us-east-1c
       KeyName: north
       SecurityGroupIds:
-        - sg-0badfec9dace42d0a
+        - sg-************
       Tags:
         - Key: Name
           Value: 'Kube-Agent'
@@ -82,9 +82,9 @@ Parameters:
     Properties:
       DBSubnetGroupDescription: 'Default DB Subnet Group'
       SubnetIds:
-        - subnet-0912ac1061ba250d4   #us-east-1a
-        - subnet-0f3892bce3dbe3c03   #us-east-1b
-        - subnet-0642e758dffd09ae0   #us-east-1c
+        - subnet-************   #us-east-1a
+        - subnet-************   #us-east-1b
+        - subnet-************   #us-east-1c
 
   # Primary RDS PostgreSQL Database
   PrimaryRDSInstance:
@@ -98,7 +98,7 @@ Parameters:
       MasterUserPassword: !Ref PrimaryRDSMasterPassword
       PubliclyAccessible: true
       VPCSecurityGroups:
-        - sg-0badfec9dace42d0a
+        - sg-************
       DBSubnetGroupName: !Ref DBSubnetGroup
       MultiAZ: 'false'
       DBName: !Ref DBName
@@ -113,7 +113,7 @@ Parameters:
       AllocatedStorage: '20'
       PubliclyAccessible: true
       VPCSecurityGroups:
-        - sg-0badfec9dace42d0a
+        - sg-************
       MultiAZ: 'false'
       SourceDBInstanceIdentifier: !Ref PrimaryRDSInstance
 
