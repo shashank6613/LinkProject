@@ -5,6 +5,7 @@ pipeline {
         // Load environment variables
         AWS_CREDENTIALS_ID = 'aws-creds'
         AWS_REGION = 'us-east-1'  // AWS Region
+        CLUSTER_NAME = 'proj-clus'
         ECR_REPOSITORY_URI = '123456789012.dkr.ecr.us-east-1.amazonaws.com/my-repo'  // ECR URI
         GITHUB_REPO_URL = 'https://github.com/user/repo.git'  // GitHub Repo URL
         KUBE_CONFIG_PATH = '/home/jenkins/.kube/config'  // Path to kubeconfig for EKS access
@@ -40,7 +41,7 @@ pipeline {
             steps {
                 script {
                     echo "Updating kubeconfig..."
-                    sh "aws eks update-kubeconfig --region ${AWS_REGION} --name my-cluster"
+                    sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${CLUSTER_NAME}"
                 }
             }
         }
