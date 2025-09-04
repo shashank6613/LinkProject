@@ -33,11 +33,7 @@ pipeline {
 
     post {
         success {
-            // Trigger the deployment pipeline
-            build job: 'jenkinsfile-Deploy-OnEKS-Cluster', wait: true, parameters: [
-                string(name: 'CLUSTER_NAME', value: CLUSTER_NAME),
-                string(name: 'REGION', value: REGION)
-            ]
+            echo 'EKS cluster created succesfully.'
         }
         failure {
             echo 'EKS cluster creation failed.'
