@@ -18,7 +18,7 @@ pipeline {
                                 --name ${CLUSTER_NAME} \
                                 --version 1.30 \
                                 --region ${REGION} \
-                                --nodegroup-name stand-work \
+                                --nodegroup-name Link-Nodes \
                                 --node-type t3.medium \
                                 --nodes 1 \
                                 --nodes-min 1 \
