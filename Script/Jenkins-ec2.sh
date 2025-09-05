@@ -1,27 +1,61 @@
 #!/bin/bash
 sudo apt update
-sudo apt install openjdk-17-jre -y
+
+echo "--- Installing Java ---"
+sudo apt install openjdk-21-jre -y
+
 sudo apt update
+
+echo "--- Installing Curl ---"
 sudo apt install curl -y
+
 sudo apt update
+
+echo "--- Installing Python3 ---"
 sudo apt install python3 -y
 sudo apt update
+
+echo "--- Installing Jenkins ---"
+echo "--- Setting up Jenkins repository ---"
 sudo wget -O /usr/share/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian/jenkins.io-2023.key
-echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc]" https://pkg.jenkins.io/debian binary/ | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
-sudo apt-get update
-sudo apt-get install jenkins -y
-sudo apt-get update
-curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-sudo apt install postgresql postgresql-contrib -y
-sudo apt -y install unzip
+echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian binary/" | tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+sudo apt update -y
+sudo apt install -y jenkins
+
+echo "--- Installing PostgreSQL ---"
+sudo apt install -y postgresql postgresql-contrib
+
+echo "--- Installing Docker ---"
+sudo apt install -y docker.io
+sudo systemctl enable docker
+sudo systemctl start docker
+sudo usermod -aG docker jenkins
+
+echo "--- Installing AWS CLI v2 ---"
+apt install -y unzip
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
 sudo ./aws/install
+rm -rf awscliv2.zip aws
+
+echo "--- Installing kubectl ---"
+KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt)
+curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl.sha256"
+echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+rm kubectl kubectl.sha256
+
+echo "--- Installing eksctl ---"
+ARCH=amd64
+PLATFORM=$(uname -s)_$ARCH
+curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_${PLATFORM}.tar.gz"
+curl -sL "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_checksums.txt" | grep ${PLATFORM} | sha256sum --check
+tar -xzf eksctl_${PLATFORM}.tar.gz -C /tmp
+sudo mv /tmp/eksctl /usr/local/bin
+rm eksctl_${PLATFORM}.tar.gz
 sudo apt update
-sudo apt-get install docker.io -y
-sudo systemctl restart docker
-sudo systemctl enable docker
+
 sudo usermod -aG $USER
 newgrp docker
 sudo apt update
