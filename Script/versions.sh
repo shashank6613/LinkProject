@@ -14,6 +14,9 @@ curl --version | head -n 1
 echo -n "Python3: "
 python3 --version
 
+echo -n "Terraform: "
+terraform -version | head -n 1
+
 echo -n "Jenkins: "
 jenkins_version=$(dpkg -s jenkins 2>/dev/null | grep '^Version:' | awk '{print $2}')
 echo "${jenkins_version:-Not Installed}"
