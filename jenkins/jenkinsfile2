@@ -27,7 +27,7 @@ pipeline {
             steps {
                 script {
                     echo "Checking if EKS Cluster exists..."
-                    def eksCluster = sh(script: "aws eks describe-cluster --name my-cluster --query 'cluster.name'", returnStdout: true).trim()
+                    def eksCluster = sh(script: "aws eks describe-cluster --name ${CLUSTER_NAME} --query 'cluster.name'", returnStdout: true).trim()
                     if (eksCluster) {
                         echo "EKS Cluster exists."
                     } else {
@@ -119,8 +119,9 @@ pipeline {
                         echo "Deploying to EKS..."
                         // Apply updated manifests to the EKS cluster
                         sh """
-                            export KUBECONFIG=$KUBE_CONFIG_FILE && kubectl apply -f ${FRONTEND_DEPLOYMENT_FILE} --kubeconfig=${KUBE_CONFIG_PATH}
-                            export KUBECONFIG=$KUBE_CONFIG_FILE && kubectl apply -f ${BACKEND_DEPLOYMENT_FILE} --kubeconfig=${KUBE_CONFIG_PATH}
+                            export KUBECONFIG=$KUBE_CONFIG_FILE
+                            kubectl apply -f ${FRONTEND_DEPLOYMENT_FILE}
+                            kubectl apply -f ${BACKEND_DEPLOYMENT_FILE}
                         """
                     }
                 }
