@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+export DEBIAN_FRONTEND=noninteractive
 sudo apt update
 
 echo "--- Installing Java ---"
