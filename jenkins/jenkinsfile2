@@ -46,6 +46,24 @@ pipeline {
             }
         }
 
+        stage('Ensure ECR Repositories Exist') {
+            steps {
+                script {
+                    echo "Checking/creating ECR repositories..."
+                    def repos = ["my-repo/frontend", "my-repo/backend"]
+                    for (r in repos) {
+                        def result = sh(script: "aws ecr describe-repositories --repository-names ${r} --region ${AWS_REGION} || echo 'MISSING'", returnStdout: true).trim()
+                        if (result.contains("MISSING")) {
+                            echo "Creating ECR repo: ${r}"
+                            sh "aws ecr create-repository --repository-name ${r} --region ${AWS_REGION}"
+                        } else {
+                            echo "ECR repo ${r} already exists."
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Build Frontend Docker Image') {
             steps {
                 script {
