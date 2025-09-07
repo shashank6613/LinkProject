@@ -40,5 +40,4 @@ spec:
   ports:
     - port: 5000
       targetPort: 5000
-      nodePort: 30088
-  type: NodePort
+  type: ClusterIP
