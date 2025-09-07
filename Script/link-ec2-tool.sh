@@ -17,7 +17,6 @@ echo "--- Installing Python3 ---"
 sudo apt install python3 -y
 sudo apt update
 
-echo "--- Installing Terraform ---"
 sudo apt-get update && sudo apt-get install -y gnupg software-properties-common
 wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg > /dev/null
 gpg --no-default-keyring --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg --fingerprint
@@ -28,7 +27,7 @@ sudo apt-get install terraform -y
 echo "--- Installing Jenkins ---"
 echo "--- Setting up Jenkins repository ---"
 sudo wget -O /usr/share/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian/jenkins.io-2023.key
-echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian binary/" | tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
 sudo apt update -y
 sudo apt install -y jenkins
 
@@ -42,7 +41,7 @@ sudo systemctl start docker
 sudo usermod -aG docker jenkins
 
 echo "--- Installing AWS CLI v2 ---"
-apt install -y unzip
+sudo apt install -y unzip
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
 sudo ./aws/install
@@ -66,6 +65,7 @@ sudo mv /tmp/eksctl /usr/local/bin
 rm eksctl_${PLATFORM}.tar.gz
 sudo apt update
 
-sudo usermod -aG $USER
+sudo usermod -aG docker $USER
+sudo usermod -aG docker jenkins
 newgrp docker
 sudo apt update
