@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 
-echo "----------------------------------------"
-echo " Checking Installed Software Versions"
-echo "----------------------------------------"
+echo "======================================"
+echo "|Checking Installed Software Versions|"
+echo "======================================"
 
 echo -n "Java (OpenJDK): "
 java -version 2>&1 | head -n 1
@@ -40,11 +40,6 @@ fi
 echo -n "eksctl: "
 eksctl version || echo "Not Installed"
 
-echo -n "Node.js: "
-node -v || echo "Not Installed"
-
-echo -n "NPM: "
-npm -v || echo "Not Installed"
-
-echo "----------------------------------------"
-echo " Version check completed."
+echo "=========================="
+echo "| Version check completed|"
+echo "=========================="
