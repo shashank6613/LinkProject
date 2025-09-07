@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: shashank9928/linkproj-fe:latest
+          image: REPLACE_ME_FRONTEND
           imagePullPolicy: Always
           ports:
             - containerPort: 80
