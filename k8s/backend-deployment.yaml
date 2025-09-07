@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: shashank9928/linkproj-be:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          env:
+            - name: DB_HOST
+              value: "myprimarypgdb.clushmnnhufs.us-west-2.rds.amazonaws.com"
+            - name: DB_USER
+              value: "shank"
+            - name: DB_PASS
+              value: "admin12345"
+            - name: DB_NAME
+              value: "primarydb"
+            - name: READ_REPLICA_HOST
+              value: "myreplicapgdb.clushmnnhufs.us-west-2.rds.amazonaws.com"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 5000
+      targetPort: 5000
+      nodePort: 30088
+  type: NodePort
