@@ -1,0 +1,16 @@
+.aws/
+.aws/*
+.terraform/
+.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+*.tfplan
+Script/aws/
+Script/awscliv2.zip
+.terraform.lock.hcl
