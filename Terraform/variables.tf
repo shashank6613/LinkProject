@@ -51,7 +51,7 @@ variable "eks_version" {
 variable "node_group_desired" {
   description = "The desired number of EKS worker nodes."
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "node_group_min" {
@@ -63,7 +63,7 @@ variable "node_group_min" {
 variable "node_group_max" {
   description = "The maximum number of EKS worker nodes."
   type        = number
-  default     = 3
+  default     = 2
 }
 
 variable "node_instance_type" {
@@ -131,11 +131,11 @@ variable "s3_bucket_name" {
 variable "s3_file1_name" {
   description = "The name of the first file to download from S3."
   type        = string
-  default     = "link-tool-check.sh"
+  default     = "Link-Project/link-tool-check.sh"
 }
 
 variable "s3_file2_name" {
   description = "The name of the second file to download from S3."
   type        = string
-  default     = "link-ec2-tool.sh"
+  default     = "Link-Project/link-ec2-tool.sh"
 }

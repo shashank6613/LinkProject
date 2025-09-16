@@ -54,8 +54,8 @@ resource "aws_instance" "link_ec2" {
               sudo apt-get install -y awscli unzip
               mkdir -p /home/ubuntu
               cd /home/ubuntu
-              aws s3 cp s3://${var.s3_bucket_name}/${var.s3_file1_name} .
-              aws s3 cp s3://${var.s3_bucket_name}/${var.s3_file2_name} .
+              aws s3 cp s3://${var.s3_bucket_name}/Link-Project/${var.s3_file1_name} .
+              aws s3 cp s3://${var.s3_bucket_name}/Link-Project/${var.s3_file2_name} .
               chmod +x ${var.s3_file2_name}
               ./$(basename ${var.s3_file2_name})
               EOF
@@ -91,15 +91,51 @@ resource "helm_release" "alb_controller" {
   }
 }
 
+#------------------------
+# Updating ConfigMap
+#------------------------
+# Data source to get the IAM role created for the EC2 instance
+data "aws_iam_role" "link_ec2" {
+  name = aws_iam_role.link_ec2.name
+}
+
+# Data source to retrieve the EKS cluster's identity
+data "aws_eks_cluster" "cluster" {
+  name = aws_eks_cluster.my_eks_cluster.name
+}
+
+# The aws-auth ConfigMap to map the EC2 IAM role to a Kubernetes group
+resource "kubernetes_config_map" "aws_auth" {
+  metadata {
+    name      = "aws-auth"
+    namespace = "kube-system"
+  }
+
+  data = {
+    mapRoles = <<-EOT
+      - rolearn: ${data.aws_iam_role.link_ec2.arn}
+        username: ec2-admin
+        groups:
+          - system:masters
+    EOT
+  }
+  depends_on = [aws_eks_cluster.my_eks_cluster, aws_eks_node_group.my_eks_node_group]
+}
+
+
+
 # ------------------------
 # Outputs
 # ------------------------
-output "primary_db_endpoint" {
-  value = aws_db_instance.primary.address
-}
-
-output "replica_db_endpoint" {
-  value = aws_db_instance.replica.address
+output "env_file_content" {
+  description = "Content for the .env file with database credentials and hosts."
+  value = <<-EOT
+DB_HOST=${aws_db_instance.primary.address}
+READ_REPLICA_HOST=${aws_db_instance.replica.address}
+DB_USER=${var.db_user}
+DB_PASSWORD=${var.db_password}
+DB_NAME=${var.db_name}
+EOT
 }
 
 output "eks_cluster_name" {

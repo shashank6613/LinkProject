@@ -14,3 +14,4 @@ override.tf.json
 Script/aws/
 Script/awscliv2.zip
 .terraform.lock.hcl
+.env
