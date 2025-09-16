@@ -131,11 +131,11 @@ variable "s3_bucket_name" {
 variable "s3_file1_name" {
   description = "The name of the first file to download from S3."
   type        = string
-  default     = "Link-Project/link-tool-check.sh"
+  default     = "link-tool-check.sh"
 }
 
 variable "s3_file2_name" {
   description = "The name of the second file to download from S3."
   type        = string
-  default     = "Link-Project/link-ec2-tool.sh"
+  default     = "link-ec2-tool.sh"
 }
