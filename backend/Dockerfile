@@ -10,9 +10,6 @@ COPY package.json package-lock.json ./
 # Install backend dependencies
 RUN npm install
 
-# Explicitly copy the .env file to the container
-COPY .env .
-
 # Copy the rest of the backend code
 COPY . .
 
