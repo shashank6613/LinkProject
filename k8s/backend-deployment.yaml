@@ -12,6 +12,7 @@ spec:
       labels:
         app: backend
     spec:
+      serviceAccountName: backend-sa
       containers:
         - name: backend
           image: REPLACE_ME_BACKEND
@@ -19,16 +20,12 @@ spec:
           ports:
             - containerPort: 5000
           env:
-            - name: DB_HOST
-              value: "myprimarypgdb.clushmnnhufs.us-west-2.rds.amazonaws.com"
-            - name: DB_USER
-              value: "shank"
-            - name: DB_PASS
-              value: "admin12345"
-            - name: DB_NAME
-              value: "primarydb"
-            - name: READ_REPLICA_HOST
-              value: "myreplicapgdb.clushmnnhufs.us-west-2.rds.amazonaws.com"
+            - name: SECRET_ID
+              value: my-rds-secret       # 👈 must match the Secrets Manager secret name
+            - name: AWS_REGION
+              value: us-west-2
+            - name: CACHE_TTL_SECONDS
+              value: "600"
 ---
 apiVersion: v1
 kind: Service

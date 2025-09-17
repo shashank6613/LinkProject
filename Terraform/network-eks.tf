@@ -322,6 +322,68 @@ resource "aws_eks_node_group" "managed_nodes" {
   ami_type       = "AL2_x86_64"
 }
 
+
+# ------------------------
+# IRSA for Backend Pods (NEW)
+# ------------------------
+
+# OIDC provider for EKS (needed once per cluster)
+data "aws_eks_cluster" "eks" {
+  name = aws_eks_cluster.cluster.name
+}
+
+resource "aws_iam_openid_connect_provider" "eks" {
+  url             = data.aws_eks_cluster.eks.identity[0].oidc[0].issuer
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = ["9e99a48a9960b14926bb7f3b02e22da0afd2a3a5"]
+}
+
+# Trust policy for backend service account
+data "aws_iam_policy_document" "backend_assume_role" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    effect  = "Allow"
+
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.eks.arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub"
+      values   = ["system:serviceaccount:default:backend-sa"]
+    }
+  }
+}
+
+# IAM Role for backend pods
+resource "aws_iam_role" "backend_sa_role" {
+  name               = "eks-backend-secrets-role"
+  assume_role_policy = data.aws_iam_policy_document.backend_assume_role.json
+}
+
+# Policy for accessing the RDS secret
+resource "aws_iam_role_policy" "backend_secrets" {
+  name = "backend-secrets-policy"
+  role = aws_iam_role.backend_sa_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ]
+        Resource = "arn:aws:secretsmanager:us-west-2:799344209838:secret:my-rds-secret*"
+      }
+    ]
+  })
+}
+
+
 # ------------------------
 # Random IDs
 # ------------------------

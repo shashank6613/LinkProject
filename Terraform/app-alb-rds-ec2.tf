@@ -92,25 +92,3 @@ resource "helm_release" "alb_controller" {
   }
 }
 
-
-# ------------------------
-# Outputs
-# ------------------------
-output "env_file_content" {
-  description = "Content for the .env file with database credentials and hosts."
-  value = <<-EOT
-DB_HOST=${aws_db_instance.primary.address}
-READ_REPLICA_HOST=${aws_db_instance.replica.address}
-DB_USER=${var.db_user}
-DB_PASSWORD=${var.db_password}
-DB_NAME=${var.db_name}
-EOT
-}
-
-output "eks_cluster_name" {
-  value = aws_eks_cluster.cluster.name
-}
-
-output "ec2_public_ip" {
-  value = aws_instance.link_ec2.public_ip
-}
