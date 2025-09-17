@@ -240,6 +240,35 @@ resource "aws_iam_policy" "link_ec2_policy" {
         Action   = "rds:DescribeDBInstances"
         Effect   = "Allow"
         Resource = "*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = [
+          "iam:GetInstanceProfile"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = [
+          "ec2:DescribeInstances"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = [
+          # ECR permissions
+          "ecr:DescribeRepositories",
+          "ecr:CreateRepository",
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload",
+          "ecr:PutImage"
+        ]
+        Resource = "*"
       }
     ]
   })
