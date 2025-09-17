@@ -4,7 +4,7 @@ pipeline {
         AWS_CREDENTIALS_ID = 'aws-creds'
         AWS_REGION = 'us-west-2'
         CLUSTER_NAME = 'link-clus'
-        ECR_REPOSITORY_URI = '123456789012.dkr.ecr.us-east-1.amazonaws.com'  // ECR URI
+        ECR_REPOSITORY_URI = '799344209838.dkr.ecr.us-west-2.amazonaws.com'  // ECR URI
         GITHUB_REPO_URL = 'https://github.com/shashank6613/LinkProject.git'  // GitHub Repo URL
         FRONTEND_DEPLOYMENT_FILE = 'k8s/frontend-deployment.yaml'
         BACKEND_DEPLOYMENT_FILE = 'k8s/backend-deployment.yaml'
@@ -71,7 +71,6 @@ pipeline {
                     """
 
                     echo "Building Backend Docker image..."
-                    def buildId = "${BUILD_NUMBER}"
                     sh """
                         docker build -t ${ECR_REPOSITORY_URI}/backend:${buildId} ./backend
                     """

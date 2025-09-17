@@ -94,13 +94,13 @@ variable "db_name" {
 variable "db_user" {
   description = "The master username for the database."
   type        = string
-  default     = "shank"
+  default     = "*****"
 }
 
 variable "db_password" {
   description = "The master password for the database. IMPORTANT: Use a more secure method like AWS Secrets Manager for production."
   type        = string
-  default     = "admin12345"
+  default     = "**********"
 }
 
 # EC2 Instance Configuration
