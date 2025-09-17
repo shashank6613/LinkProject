@@ -143,11 +143,11 @@ pipeline {
         }
         failure {
             echo "Pipeline failed. Cleaning up..."
-            def buildId = "${BUILD_NUMBER}"
             sh """
-                docker rmi ${ECR_REPOSITORY_URI}/frontend:${buildId} || true
-                docker rmi ${ECR_REPOSITORY_URI}/backend:${buildId} || true
+                docker rmi ${ECR_REPOSITORY_URI}/frontend:${BUILD_NUMBER} || true
+                docker rmi ${ECR_REPOSITORY_URI}/backend:${BUILD_NUMBER} || true
                 docker ps -a -q --filter 'status=exited' | xargs docker rm || true
+                docker images -f "dangling=true" -q | xargs -r docker rmi || true
             """
         }
     }
