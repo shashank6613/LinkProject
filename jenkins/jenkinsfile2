@@ -100,7 +100,6 @@ pipeline {
                     sh "docker push ${ECR_REPOSITORY_URI}/frontend:${buildId}"
 
                     echo "Pushing Backend Docker image to ECR..."
-                    def buildId = "${BUILD_NUMBER}"
                     sh "docker push ${ECR_REPOSITORY_URI}/backend:${buildId}"
                 }
             }
