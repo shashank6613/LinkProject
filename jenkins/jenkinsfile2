@@ -67,12 +67,12 @@ pipeline {
                     echo "Building Frontend Docker image..."
                     def buildId = "${BUILD_NUMBER}"
                     sh """
-                        docker build -t ${ECR_REPOSITORY_URI}/frontend:${buildId} ./frontend
+                        docker build -t ${ECR_REPOSITORY_URI}/my-repo/frontend:${buildId} ./frontend
                     """
 
                     echo "Building Backend Docker image..."
                     sh """
-                        docker build -t ${ECR_REPOSITORY_URI}/backend:${buildId} ./backend
+                        docker build -t ${ECR_REPOSITORY_URI}/my-repo/backend:${buildId} ./backend
                     """
                 }
             }
@@ -97,10 +97,10 @@ pipeline {
                 script {
                     echo "Pushing Frontend Docker image to ECR..."
                     def buildId = "${BUILD_NUMBER}"
-                    sh "docker push ${ECR_REPOSITORY_URI}/frontend:${buildId}"
+                    sh "docker push ${ECR_REPOSITORY_URI}/my-repo/frontend:${buildId}"
 
                     echo "Pushing Backend Docker image to ECR..."
-                    sh "docker push ${ECR_REPOSITORY_URI}/backend:${buildId}"
+                    sh "docker push ${ECR_REPOSITORY_URI}/my-repo/backend:${buildId}"
                 }
             }
         }
@@ -111,13 +111,13 @@ pipeline {
                     def buildId = "${BUILD_NUMBER}"
 
                     // Update the image in frontend deployment YAML
-                    def frontendDockerImage = "${ECR_REPOSITORY_URI}/frontend:${buildId}"
+                    def frontendDockerImage = "${ECR_REPOSITORY_URI}/my-repo/frontend:${buildId}"
                     sh """
                         sed -i 's|image: .*|image: ${frontendDockerImage}|' ${FRONTEND_DEPLOYMENT_FILE}
                     """
 
                     // Update the image in backend deployment YAML
-                    def backendDockerImage = "${ECR_REPOSITORY_URI}/backend:${buildId}"
+                    def backendDockerImage = "${ECR_REPOSITORY_URI}/my-repo/backend:${buildId}"
                     sh """
                         sed -i 's|image: .*|image: ${backendDockerImage}|' ${BACKEND_DEPLOYMENT_FILE}
                     """
@@ -130,8 +130,10 @@ pipeline {
                 echo "Deploying to EKS..."
                 // Apply updated manifests to the EKS cluster
                 sh """
+                    kubectl apply -f k8s/backend-sa.yaml
                     kubectl apply -f ${FRONTEND_DEPLOYMENT_FILE}
                     kubectl apply -f ${BACKEND_DEPLOYMENT_FILE}
+                    kubectl apply -f k8s/ingress.yaml
                 """
             }
         }
@@ -144,8 +146,8 @@ pipeline {
         failure {
             echo "Pipeline failed. Cleaning up..."
             sh """
-                docker rmi ${ECR_REPOSITORY_URI}/frontend:${BUILD_NUMBER} || true
-                docker rmi ${ECR_REPOSITORY_URI}/backend:${BUILD_NUMBER} || true
+                docker rmi ${ECR_REPOSITORY_URI}/my-repo/frontend:${BUILD_NUMBER} || true
+                docker rmi ${ECR_REPOSITORY_URI}/my-repo/backend:${BUILD_NUMBER} || true
                 docker ps -a -q --filter 'status=exited' | xargs docker rm || true
                 docker images -f "dangling=true" -q | xargs -r docker rmi || true
             """
