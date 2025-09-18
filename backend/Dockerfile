@@ -1,20 +1,29 @@
-# Step 1: Use the official Node.js image
-FROM node:14-alpine AS build
+# Step 1: Build dependencies
+FROM node:16-alpine AS build
 
-# Set the working directory
+# Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json to the container
+# Copy dependency files first (better layer caching)
 COPY package.json package-lock.json ./
 
-# Install backend dependencies
-RUN npm install
+# Install exact dependencies (respect package-lock.json)
+RUN npm ci --only=production
 
 # Copy the rest of the backend code
 COPY . .
 
-# Expose the backend port (5000)
+# Step 2: Run backend
+FROM node:16-alpine
+
+WORKDIR /app
+
+# Copy only the necessary files from build stage
+COPY --from=build /app /app
+
+# Expose the backend port
 EXPOSE 5000
 
-# Start the backend server
-CMD ["node", "index.js"]
+# Start the backend
+CMD ["npm", "start"]
+
