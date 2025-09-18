@@ -67,12 +67,12 @@ pipeline {
                     echo "Building Frontend Docker image..."
                     def buildId = "${BUILD_NUMBER}"
                     sh """
-                        docker build -t ${ECR_REPOSITORY_URI}/my-repo/frontend:${buildId} ./frontend
+                        docker build --no-cache -t ${ECR_REPOSITORY_URI}/my-repo/frontend:${buildId} ./frontend
                     """
 
                     echo "Building Backend Docker image..."
                     sh """
-                        docker build -t ${ECR_REPOSITORY_URI}/my-repo/backend:${buildId} ./backend
+                        docker build --no-cache -t ${ECR_REPOSITORY_URI}/my-repo/backend:${buildId} ./backend
                     """
                 }
             }
