@@ -64,13 +64,62 @@ resource "aws_instance" "link_ec2" {
   tags = { Name = "link-project-ec2" }
 }
 
+#---------------------------------------
+# IAM Role/policy for ingress controller
+#---------------------------------------
+
+# Get OIDC provider for EKS (required for IRSA)
+data "aws_iam_openid_connect_provider" "eks" {
+  arn = aws_iam_openid_connect_provider.eks.arn
+}
+
+# Create IAM role for ALB Controller
+resource "aws_iam_role" "alb_controller" {
+  name = "${aws_eks_cluster.cluster.name}-alb-controller"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Federated = aws_iam_openid_connect_provider.eks.arn
+      }
+      Action = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
+        }
+      }
+    }]
+  })
+}
+
+# Attach AWS managed policy for ALB Controller
+resource "aws_iam_role_policy_attachment" "alb_controller_policy" {
+  role       = aws_iam_role.alb_controller.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSLoadBalancerControllerIAMPolicy"
+}
+
+# Service account for alb
+resource "kubernetes_service_account" "alb_controller" {
+  metadata {
+    name      = "aws-load-balancer-controller"
+    namespace = "kube-system"
+    annotations = {
+      "eks.amazonaws.com/role-arn" = aws_iam_role.alb_controller.arn
+    }
+  }
+}
+
 # ------------------------
 # ALB Ingress Controller via Helm
 # ------------------------
+
 resource "helm_release" "alb_controller" {
   depends_on = [
     aws_eks_cluster.cluster,
-    aws_eks_node_group.managed_nodes
+    aws_eks_node_group.managed_nodes,
+    kubernetes_service_account.alb_controller
   ]
 
   name       = "aws-load-balancer-controller"
@@ -82,13 +131,14 @@ resource "helm_release" "alb_controller" {
     name  = "clusterName"
     value = aws_eks_cluster.cluster.name
   }
+
   set {
     name  = "serviceAccount.create"
-    value = "true"
+    value = "false"
   }
+
   set {
     name  = "serviceAccount.name"
-    value = "aws-load-balancer-controller"
+    value = kubernetes_service_account.alb_controller.metadata[0].name
   }
 }
-

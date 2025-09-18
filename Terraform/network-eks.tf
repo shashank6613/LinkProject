@@ -15,7 +15,11 @@ resource "aws_subnet" "public" {
   cidr_block              = each.value
   availability_zone       = var.availability_zones[each.key % length(var.availability_zones)]
   map_public_ip_on_launch = true
-  tags = { Name = "public-subnet-${each.key}" }
+  tags = { 
+    Name = "public-subnet-${each.key}" 
+    "kubernetes.io/role/elb"          = "1"
+    "kubernetes.io/cluster/link-clus" = "shared"
+  }
 }
 
 resource "aws_subnet" "private" {
@@ -25,7 +29,11 @@ resource "aws_subnet" "private" {
   cidr_block              = each.value
   availability_zone       = var.availability_zones[each.key % length(var.availability_zones)]
   map_public_ip_on_launch = false
-  tags = { Name = "private-subnet-${each.key}" }
+  tags = { 
+    Name = "private-subnet-${each.key}" 
+    "kubernetes.io/role/internal-elb" = "1"
+    "kubernetes.io/cluster/link-clus" = "shared"
+  }
 }
 
 resource "aws_internet_gateway" "igw" {
