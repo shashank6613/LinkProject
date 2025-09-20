@@ -335,6 +335,10 @@ resource "aws_eks_node_group" "managed_nodes" {
 # IRSA for Backend Pods (NEW)
 # ------------------------
 
+data "aws_eks_cluster" "eks" {
+  name = aws_eks_cluster.cluster.name
+}
+
 resource "aws_iam_openid_connect_provider" "eks" {
   url             = data.aws_eks_cluster.eks.identity[0].oidc[0].issuer
   client_id_list  = ["sts.amazonaws.com"]
@@ -354,7 +358,7 @@ data "aws_iam_policy_document" "backend_assume_role" {
 
     condition {
       test     = "StringEquals"
-      variable = "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub"
+      variable = "${replace(data.aws_eks_cluster.eks.identity[0].oidc[0].issuer, "https://", "")}:sub"
       values   = ["system:serviceaccount:default:backend-sa"]
     }
   }
