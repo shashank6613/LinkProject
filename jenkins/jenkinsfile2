@@ -128,6 +128,7 @@ pipeline {
                 echo "Deploying to EKS..."
                 // Apply updated manifests to the EKS cluster
                 sh """
+                    kubectl apply -f k8s/nginx-config.yaml
                     kubectl apply -f k8s/backend-sa.yaml
                     kubectl apply -f ${FRONTEND_DEPLOYMENT_FILE}
                     kubectl apply -f ${BACKEND_DEPLOYMENT_FILE}
