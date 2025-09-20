@@ -172,7 +172,7 @@ async function init() {
     console.log('Table "users" created or already exists in the primary DB');
 
     // Start server
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server is running on port ${PORT}`);
     });
 
