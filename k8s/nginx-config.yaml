@@ -17,7 +17,7 @@ data:
 
         # Proxy all backend API requests
         location /api/ {
-            proxy_pass http://backend-service:5000/api/;
+            proxy_pass http://backend-service:5000/;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection 'upgrade';
