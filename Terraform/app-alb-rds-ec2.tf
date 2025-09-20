@@ -64,16 +64,17 @@ resource "aws_instance" "link_ec2" {
   tags = { Name = "link-project-ec2" }
 }
 
-#---------------------------------------
-# IAM Role/policy for ingress controller
-#---------------------------------------
 
-# Get OIDC provider for EKS (required for IRSA)
+# --------------------------------------------
+# OIDC Provider for EKS (needed for IRSA)
+# --------------------------------------------
 data "aws_iam_openid_connect_provider" "eks" {
-  arn = aws_iam_openid_connect_provider.eks.arn
+  url = aws_eks_cluster.cluster.identity[0].oidc[0].issuer
 }
 
-# Create IAM role for ALB Controller
+# --------------------------------------------
+# IAM Role for AWS Load Balancer Controller
+# --------------------------------------------
 resource "aws_iam_role" "alb_controller" {
   name = "${aws_eks_cluster.cluster.name}-alb-controller"
 
@@ -82,25 +83,39 @@ resource "aws_iam_role" "alb_controller" {
     Statement = [{
       Effect = "Allow"
       Principal = {
-        Federated = aws_iam_openid_connect_provider.eks.arn
+        Federated = data.aws_iam_openid_connect_provider.eks.arn
       }
       Action = "sts:AssumeRoleWithWebIdentity"
       Condition = {
         StringEquals = {
-          "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
+          "${replace(data.aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
         }
       }
     }]
   })
 }
 
-# Attach AWS managed policy for ALB Controller
-resource "aws_iam_role_policy_attachment" "alb_controller_policy" {
-  role       = aws_iam_role.alb_controller.name
-  policy_arn = "arn:aws:iam::aws:policy/AWSLoadBalancerControllerIAMPolicy"
+# --------------------------------------------
+# Fetch Official AWS LB Controller IAM Policy
+# --------------------------------------------
+data "http" "alb_controller_policy" {
+  url = "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json"
 }
 
-# Service account for alb
+resource "aws_iam_policy" "alb_controller_policy" {
+  name        = "${aws_eks_cluster.cluster.name}-AWSLoadBalancerControllerIAMPolicy"
+  description = "IAM policy for AWS Load Balancer Controller"
+  policy      = data.http.alb_controller_policy.response_body
+}
+
+resource "aws_iam_role_policy_attachment" "alb_controller_attach" {
+  role       = aws_iam_role.alb_controller.name
+  policy_arn = aws_iam_policy.alb_controller_policy.arn
+}
+
+# --------------------------------------------
+# ServiceAccount for ALB Controller
+# --------------------------------------------
 resource "kubernetes_service_account" "alb_controller" {
   metadata {
     name      = "aws-load-balancer-controller"
@@ -111,10 +126,9 @@ resource "kubernetes_service_account" "alb_controller" {
   }
 }
 
-# ------------------------
-# ALB Ingress Controller via Helm
-# ------------------------
-
+# --------------------------------------------
+# Helm Release for AWS Load Balancer Controller
+# --------------------------------------------
 resource "helm_release" "alb_controller" {
   depends_on = [
     aws_eks_cluster.cluster,

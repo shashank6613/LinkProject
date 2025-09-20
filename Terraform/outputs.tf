@@ -152,6 +152,41 @@ output "oidc_provider_arn" {
 }
 
 # ------------------------
+# AlB Controller
+# ------------------------
+
+# IAM role created for ALB Controller
+output "alb_controller_iam_role_arn" {
+  description = "IAM role ARN used by the AWS Load Balancer Controller"
+  value       = aws_iam_role.alb_controller.arn
+}
+
+# IAM policy created for ALB Controller
+output "alb_controller_iam_policy_arn" {
+  description = "IAM policy ARN attached to the ALB Controller role"
+  value       = aws_iam_policy.alb_controller_policy.arn
+}
+
+# Kubernetes service account created
+output "alb_controller_service_account" {
+  description = "Service account name for AWS Load Balancer Controller"
+  value       = kubernetes_service_account.alb_controller.metadata[0].name
+}
+
+# Helm release status
+output "alb_controller_helm_status" {
+  description = "Status of the Helm release for AWS Load Balancer Controller"
+  value       = helm_release.alb_controller.status
+}
+
+# Helm chart version for ALB Controller
+output "alb_controller_helm_chart_version" {
+  description = "Version of the AWS Load Balancer Controller Helm chart installed"
+  value       = helm_release.alb_controller.version
+}
+
+
+# ------------------------
 # Random IDs
 # ------------------------
 output "random_id_ekscid" {
@@ -160,4 +195,3 @@ output "random_id_ekscid" {
 output "random_id_eksnid" {
   value = random_id.eksnid.hex
 }
-
