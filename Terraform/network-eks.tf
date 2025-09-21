@@ -330,12 +330,6 @@ resource "aws_eks_node_group" "managed_nodes" {
   ami_type       = "AL2_x86_64"
 }
 
-# Wait 30 seconds after EKS cluster is created (to allow OIDC URL to propagate)
-resource "time_sleep" "wait_for_oidc" {
-  depends_on = [aws_eks_cluster.cluster]
-  create_duration = "30s"
-}
-
 # ------------------------
 # IRSA for Backend Pods (NEW)
 # ------------------------
@@ -344,26 +338,19 @@ data "aws_eks_cluster" "eks" {
   name = aws_eks_cluster.cluster.name
 }
 
-# Try to lookup existing OIDC provider
-data "aws_iam_openid_connect_provider" "eks" {
-  url = data.aws_eks_cluster.eks.identity[0].oidc[0].issuer
-}
-
-# Create one if not found (using conditional count)
+# Create oidc
 resource "aws_iam_openid_connect_provider" "eks" {
-  count           = length(try(data.aws_iam_openid_connect_provider.eks.arn, "")) == 0 ? 1 : 0
   url             = data.aws_eks_cluster.eks.identity[0].oidc[0].issuer
   client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = ["9e99a48a9960b14926bb7f3b02e22da2b0ab7280"]
 
-  depends_on = [time_sleep.wait_for_oidc]
 }
 
 # Pick the OIDC ARN whether it's from data or resource
 locals {
   eks_oidc_provider_arn = try(
     data.aws_iam_openid_connect_provider.eks.arn,
-    aws_iam_openid_connect_provider.eks[0].arn
+    aws_iam_openid_connect_provider.eks.arn
   )
 }
 
