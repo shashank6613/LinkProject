@@ -79,6 +79,41 @@ resource "aws_route_table_association" "private_assoc" {
   route_table_id = aws_route_table.private.id
 }
 
+
+# --------------------------------
+# Network ACLs for Private Subnets
+# --------------------------------
+
+resource "aws_network_acl" "private" {
+  vpc_id = aws_vpc.this.id
+  subnet_ids = values(aws_subnet.private)[*].id
+  tags = { Name = "private-nacl" }
+}
+
+# Inbound rule to allow traffic on PostgreSQL port (5432) from the entire VPC
+resource "aws_network_acl_rule" "inbound_rds_traffic" {
+  network_acl_id = aws_network_acl.private.id
+  rule_number    = 100
+  protocol       = "tcp"
+  rule_action    = "allow"
+  egress         = false
+  from_port      = 5432
+  to_port        = 5432
+  cidr_block     = aws_vpc.this.cidr_block
+}
+
+# Outbound rule to allow traffic on ephemeral ports (1024-65535) to the entire VPC
+resource "aws_network_acl_rule" "outbound_eks_traffic" {
+  network_acl_id = aws_network_acl.private.id
+  rule_number    = 100
+  protocol       = "tcp"
+  rule_action    = "allow"
+  egress         = true
+  from_port      = 1024
+  to_port        = 65535
+  cidr_block     = aws_vpc.this.cidr_block
+}
+
 # ------------------------
 # Security Groups
 # ------------------------
@@ -296,15 +331,15 @@ resource "aws_iam_instance_profile" "link_ec2_profile" {
 # EKS Cluster + Node Group
 # ------------------------
 resource "aws_eks_cluster" "cluster" {
-  name     = var.eks_cluster_name
-  role_arn = aws_iam_role.eks_cluster_role.arn
+  name       = var.eks_cluster_name
+  role_arn   = aws_iam_role.eks_cluster_role.arn
   depends_on = [
     aws_iam_role_policy_attachment.eks_cluster_A
   ]
 
   vpc_config {
-    subnet_ids              = concat(values(aws_subnet.private)[*].id, values(aws_subnet.public)[*].id)
-    endpoint_public_access  = true
+    subnet_ids           = concat(values(aws_subnet.private)[*].id, values(aws_subnet.public)[*].id)
+    endpoint_public_access = true
   }
 
   version = var.eks_version
@@ -315,21 +350,21 @@ resource "aws_eks_node_group" "managed_nodes" {
   node_group_name = "${var.eks_cluster_name}-ng"
   node_role_arn   = aws_iam_role.eks_node_role.arn
   subnet_ids      = values(aws_subnet.private)[*].id
-  depends_on = [
-    aws_iam_role_policy_attachment.eks_worker_A,
-    aws_iam_role_policy_attachment.eks_cni
-  ]
-
+  instance_types  = [var.node_instance_type]
+  ami_type        = "AL2_x86_64" # EKS optimized Amazon Linux 2 AMI
+  
   scaling_config {
     desired_size = var.node_group_desired
     min_size     = var.node_group_min
     max_size     = var.node_group_max
   }
 
-  instance_types = [var.node_instance_type]
-  ami_type       = "AL2_x86_64"
+  depends_on = [
+    aws_iam_role_policy_attachment.eks_worker_A,
+    aws_iam_role_policy_attachment.eks_cni
+  ]
 }
-
+ 
 # ------------------------
 # IRSA for Backend Pods (NEW)
 # ------------------------
@@ -343,7 +378,6 @@ resource "aws_iam_openid_connect_provider" "eks" {
   url             = data.aws_eks_cluster.eks.identity[0].oidc[0].issuer
   client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = ["9e99a48a9960b14926bb7f3b02e22da2b0ab7280"]
-
 }
 
 # Pick the OIDC ARN whether it's from data or resource
@@ -366,9 +400,9 @@ data "aws_iam_policy_document" "backend_assume_role" {
     }
 
     condition {
-      test     = "StringEquals"
-      variable = "${replace(data.aws_eks_cluster.eks.identity[0].oidc[0].issuer, "https://", "")}:sub"
-      values   = ["system:serviceaccount:default:backend-sa"]
+      test       = "StringEquals"
+      variable   = "${replace(data.aws_eks_cluster.eks.identity[0].oidc[0].issuer, "https://", "")}:sub"
+      values     = ["system:serviceaccount:default:backend-sa"]
     }
   }
 }
@@ -405,4 +439,3 @@ resource "aws_iam_role_policy" "backend_secrets" {
 # ------------------------
 resource "random_id" "ekscid" { byte_length = 4 }
 resource "random_id" "eksnid" { byte_length = 4 }
-
