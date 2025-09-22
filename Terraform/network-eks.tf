@@ -90,10 +90,26 @@ resource "aws_network_acl" "private" {
   tags = { Name = "private-nacl" }
 }
 
-# Inbound rule to allow traffic on PostgreSQL port (5432) from the entire VPC
-resource "aws_network_acl_rule" "inbound_rds_traffic" {
+# ------------------------
+# Private Subnet NACL Rules for EKS NodeGroup
+# ------------------------
+
+# Inbound: allow ephemeral ports (1024-65535) from anywhere (required for return traffic)
+resource "aws_network_acl_rule" "inbound_ephemeral" {
   network_acl_id = aws_network_acl.private.id
   rule_number    = 100
+  protocol       = "tcp"
+  rule_action    = "allow"
+  egress         = false
+  from_port      = 1024
+  to_port        = 65535
+  cidr_block     = "0.0.0.0/0"
+}
+
+# Inbound: allow PostgreSQL from VPC (for RDS)
+resource "aws_network_acl_rule" "inbound_rds" {
+  network_acl_id = aws_network_acl.private.id
+  rule_number    = 110
   protocol       = "tcp"
   rule_action    = "allow"
   egress         = false
@@ -102,16 +118,40 @@ resource "aws_network_acl_rule" "inbound_rds_traffic" {
   cidr_block     = aws_vpc.this.cidr_block
 }
 
-# Outbound rule to allow traffic on ephemeral ports (1024-65535) to the entire VPC
-resource "aws_network_acl_rule" "outbound_eks_traffic" {
+# Outbound: allow all traffic to anywhere (required for NAT → internet)
+resource "aws_network_acl_rule" "outbound_all" {
   network_acl_id = aws_network_acl.private.id
   rule_number    = 100
+  protocol       = "-1"  # all protocols
+  rule_action    = "allow"
+  egress         = true
+  from_port      = 0
+  to_port        = 0
+  cidr_block     = "0.0.0.0/0"
+}
+
+# Outbound: allow PostgreSQL to VPC (optional, matches inbound for RDS)
+resource "aws_network_acl_rule" "outbound_rds" {
+  network_acl_id = aws_network_acl.private.id
+  rule_number    = 110
   protocol       = "tcp"
   rule_action    = "allow"
   egress         = true
-  from_port      = 1024
-  to_port        = 65535
+  from_port      = 5432
+  to_port        = 5432
   cidr_block     = aws_vpc.this.cidr_block
+}
+
+# Outbound rule to allow HTTPS to anywhere (EKS API server)
+resource "aws_network_acl_rule" "private_allow_https" {
+  network_acl_id = aws_network_acl.private.id
+  rule_number    = 120
+  protocol       = "tcp"
+  rule_action    = "allow"
+  egress         = true
+  from_port      = 443
+  to_port        = 443
+  cidr_block     = "0.0.0.0/0"
 }
 
 # ------------------------
@@ -370,7 +410,7 @@ resource "aws_eks_node_group" "managed_nodes" {
 # ------------------------
 
 data "aws_eks_cluster" "eks" {
-  name = aws_eks_cluster.cluster.name
+  name = "link-clus"
 }
 
 # Create oidc
@@ -380,12 +420,9 @@ resource "aws_iam_openid_connect_provider" "eks" {
   thumbprint_list = ["9e99a48a9960b14926bb7f3b02e22da2b0ab7280"]
 }
 
-# Pick the OIDC ARN whether it's from data or resource
+# Use this ARN for roles/policies
 locals {
-  eks_oidc_provider_arn = try(
-    data.aws_iam_openid_connect_provider.eks.arn,
-    aws_iam_openid_connect_provider.eks.arn
-  )
+  eks_oidc_provider_arn = aws_iam_openid_connect_provider.eks.arn
 }
 
 # Trust policy for backend service account

@@ -7,6 +7,8 @@ metadata:
     kubernetes.io/ingress.class: alb   # if AWS ALB ingress controller
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-port: 80
 spec:
   rules:
     - http:
