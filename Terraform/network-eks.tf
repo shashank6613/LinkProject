@@ -217,6 +217,7 @@ resource "aws_security_group" "rds_sg" {
   tags = { Name = "rds-sg" }
 }
 
+
 # ------------------------
 # IAM for EKS
 # ------------------------
@@ -398,6 +399,13 @@ resource "aws_eks_node_group" "managed_nodes" {
     aws_iam_role_policy_attachment.eks_worker_A,
     aws_iam_role_policy_attachment.eks_cni
   ]
+}
+
+data "aws_eks_node_group" "managed_nodes" {
+  cluster_name    = aws_eks_cluster.cluster.name
+  node_group_name = aws_eks_node_group.managed_nodes.node_group_name
+
+  depends_on = [aws_eks_node_group.managed_nodes]  # ensure node group exists
 }
  
 # ------------------------

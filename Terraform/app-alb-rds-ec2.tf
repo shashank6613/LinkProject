@@ -7,6 +7,10 @@ resource "aws_db_subnet_group" "rds_subnets" {
   tags       = { Name = "rds-subnet-group" }
 }
 
+data "aws_db_parameter_group" "existing_param_group" {
+  name = "newpara"
+}
+
 resource "aws_db_instance" "primary" {
   identifier              = var.primary_rds_identifier
   engine                  = "postgres"
@@ -17,6 +21,7 @@ resource "aws_db_instance" "primary" {
   password                = var.db_password
   backup_retention_period = 7
   depends_on = [aws_security_group.rds_sg]
+  parameter_group_name = data.aws_db_parameter_group.existing_param_group.name
   db_subnet_group_name    = aws_db_subnet_group.rds_subnets.name
   vpc_security_group_ids  = [aws_security_group.rds_sg.id]
   publicly_accessible     = false
@@ -29,6 +34,7 @@ resource "aws_db_instance" "replica" {
   instance_class          = "db.t3.micro"
   depends_on = [aws_db_instance.primary]
   replicate_source_db     = aws_db_instance.primary.arn
+  parameter_group_name = data.aws_db_parameter_group.existing_param_group.name
   db_subnet_group_name    = aws_db_subnet_group.rds_subnets.name
   vpc_security_group_ids  = [aws_security_group.rds_sg.id]
   publicly_accessible     = false
