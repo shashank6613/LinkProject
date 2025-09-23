@@ -44,14 +44,14 @@ variable "eks_cluster_name" {
 variable "eks_version" {
   description = "The Kubernetes version for the EKS cluster."
   type        = string
-  default     = "1.28"
+  default     = "1.30"
 }
 
 # EKS Node Group Configuration
 variable "node_group_desired" {
   description = "The desired number of EKS worker nodes."
   type        = number
-  default     = 1
+  default     = 2
 }
 
 variable "node_group_min" {
@@ -63,7 +63,7 @@ variable "node_group_min" {
 variable "node_group_max" {
   description = "The maximum number of EKS worker nodes."
   type        = number
-  default     = 2
+  default     = 3
 }
 
 variable "node_instance_type" {

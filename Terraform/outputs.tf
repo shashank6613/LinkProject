@@ -148,7 +148,7 @@ output "alb_controller_name" {
 # OIDC Provider
 # ------------------------
 output "oidc_provider_arn" {
-  value = aws_iam_openid_connect_provider.eks.arn
+  value = local.eks_oidc_provider_arn
 }
 
 # ------------------------

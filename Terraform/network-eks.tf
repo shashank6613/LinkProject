@@ -67,10 +67,14 @@ resource "aws_nat_gateway" "nat" {
 
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.this.id
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.nat.id
-  }
+  tags = { Name = "private-rt" }
+}
+
+# Add a separate resource for the NAT Gateway route
+resource "aws_route" "private_nat" {
+  route_table_id         = aws_route_table.private.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.nat.id
 }
 
 resource "aws_route_table_association" "private_assoc" {
@@ -90,12 +94,12 @@ resource "aws_network_acl" "private" {
   tags = { Name = "private-nacl" }
 }
 
-# ------------------------
+# -------------------------------------------
 # Private Subnet NACL Rules for EKS NodeGroup
-# ------------------------
+# -------------------------------------------
 
-# Inbound: allow ephemeral ports (1024-65535) from anywhere (required for return traffic)
-resource "aws_network_acl_rule" "inbound_ephemeral" {
+# 1) Ingress: allow ephemeral ports from anywhere (return traffic)
+resource "aws_network_acl_rule" "private_ingress_ephemeral" {
   network_acl_id = aws_network_acl.private.id
   rule_number    = 100
   protocol       = "tcp"
@@ -106,53 +110,37 @@ resource "aws_network_acl_rule" "inbound_ephemeral" {
   cidr_block     = "0.0.0.0/0"
 }
 
-# Inbound: allow PostgreSQL from VPC (for RDS)
-resource "aws_network_acl_rule" "inbound_rds" {
+# 2) Ingress: allow established responses on all protocols from NAT / Internet
+#    (optional but safe) — broad inbound so responses can return
+resource "aws_network_acl_rule" "private_ingress_all_from_internet" {
   network_acl_id = aws_network_acl.private.id
   rule_number    = 110
-  protocol       = "tcp"
+  protocol       = "-1"
   rule_action    = "allow"
   egress         = false
-  from_port      = 5432
-  to_port        = 5432
-  cidr_block     = aws_vpc.this.cidr_block
-}
-
-# Outbound: allow all traffic to anywhere (required for NAT → internet)
-resource "aws_network_acl_rule" "outbound_all" {
-  network_acl_id = aws_network_acl.private.id
-  rule_number    = 100
-  protocol       = "-1"  # all protocols
-  rule_action    = "allow"
-  egress         = true
-  from_port      = 0
-  to_port        = 0
   cidr_block     = "0.0.0.0/0"
 }
 
-# Outbound: allow PostgreSQL to VPC (optional, matches inbound for RDS)
-resource "aws_network_acl_rule" "outbound_rds" {
-  network_acl_id = aws_network_acl.private.id
-  rule_number    = 110
-  protocol       = "tcp"
-  rule_action    = "allow"
-  egress         = true
-  from_port      = 5432
-  to_port        = 5432
-  cidr_block     = aws_vpc.this.cidr_block
-}
-
-# Outbound rule to allow HTTPS to anywhere (EKS API server)
-resource "aws_network_acl_rule" "private_allow_https" {
+# 3) Ingress: allow traffic from inside VPC (intra-VPC)
+resource "aws_network_acl_rule" "private_ingress_vpc" {
   network_acl_id = aws_network_acl.private.id
   rule_number    = 120
-  protocol       = "tcp"
+  protocol       = "-1"
+  rule_action    = "allow"
+  egress         = false
+  cidr_block     = aws_vpc.this.cidr_block
+}
+
+# 5) Egress: allow all protocol outbound to anywhere
+resource "aws_network_acl_rule" "private_egress_all" {
+  network_acl_id = aws_network_acl.private.id
+  rule_number    = 200
+  protocol       = "-1"
   rule_action    = "allow"
   egress         = true
-  from_port      = 443
-  to_port        = 443
   cidr_block     = "0.0.0.0/0"
 }
+
 
 # ------------------------
 # Security Groups
@@ -161,6 +149,13 @@ resource "aws_security_group" "eks_nodes" {
   name        = "eks-nodes-sg"
   vpc_id      = aws_vpc.this.id
   description = "EKS worker nodes SG"
+  
+  ingress { 
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    self = true
+  }  
 
   egress {
     from_port   = 0
@@ -409,15 +404,24 @@ resource "aws_eks_node_group" "managed_nodes" {
 # IRSA for Backend Pods (NEW)
 # ------------------------
 
-data "aws_eks_cluster" "eks" {
-  name = "link-clus"
+#fetch the root CA thumbprint of the OIDC provider
+
+data "tls_certificate" "eks_provider_thumbprint" {
+  url = aws_eks_cluster.cluster.identity[0].oidc[0].issuer
 }
 
-# Create oidc
+# OIDC provider
 resource "aws_iam_openid_connect_provider" "eks" {
-  url             = data.aws_eks_cluster.eks.identity[0].oidc[0].issuer
+  url = aws_eks_cluster.cluster.identity[0].oidc[0].issuer
   client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = ["9e99a48a9960b14926bb7f3b02e22da2b0ab7280"]
+  
+  # the thumbprint is dynamically retrieved and inserted here
+  thumbprint_list = [
+    data.tls_certificate.eks_provider_thumbprint.certificates[0].sha1_fingerprint
+  ]
+  depends_on = [
+    aws_eks_cluster.cluster
+  ]
 }
 
 # Use this ARN for roles/policies
@@ -433,12 +437,12 @@ data "aws_iam_policy_document" "backend_assume_role" {
 
     principals {
       type        = "Federated"
-      identifiers = [aws_iam_openid_connect_provider.eks.arn]
+      identifiers = [local.eks_oidc_provider_arn]
     }
 
     condition {
       test       = "StringEquals"
-      variable   = "${replace(data.aws_eks_cluster.eks.identity[0].oidc[0].issuer, "https://", "")}:sub"
+      variable   = "${replace(aws_eks_cluster.cluster.identity[0].oidc[0].issuer, "https://", "")}:sub"
       values     = ["system:serviceaccount:default:backend-sa"]
     }
   }

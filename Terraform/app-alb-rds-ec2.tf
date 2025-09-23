@@ -64,14 +64,6 @@ resource "aws_instance" "link_ec2" {
   tags = { Name = "link-project-ec2" }
 }
 
-
-# --------------------------------------------
-# OIDC Provider for EKS (needed for IRSA)
-# --------------------------------------------
-data "aws_iam_openid_connect_provider" "eks" {
-  url = aws_eks_cluster.cluster.identity[0].oidc[0].issuer
-}
-
 # --------------------------------------------
 # IAM Role for AWS Load Balancer Controller
 # --------------------------------------------
@@ -79,16 +71,16 @@ resource "aws_iam_role" "alb_controller" {
   name = "${aws_eks_cluster.cluster.name}-alb-controller"
 
   assume_role_policy = jsonencode({
-    Version = "2012-10-17"
+    Version = "2012-10-17",
     Statement = [{
-      Effect = "Allow"
+      Effect = "Allow",
       Principal = {
-        Federated = data.aws_iam_openid_connect_provider.eks.arn
-      }
-      Action = "sts:AssumeRoleWithWebIdentity"
+        Federated   = local.eks_oidc_provider_arn
+      },
+      Action = "sts:AssumeRoleWithWebIdentity",
       Condition = {
         StringEquals = {
-          "${replace(data.aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
+          "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
         }
       }
     }]
